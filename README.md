@@ -75,6 +75,45 @@ Run the playbook:
 ansible-playbook playbooks/config_apic.yaml
 ```
 
+Output:
+```bash
+PLAY [Deploy APIC configuration] ****************************************************************************************************************************************************************************************************************************************************************************
+
+TASK [present_apic : Create Tenants] ************************************************************************************************************************************************************************************************************************************************************************
+changed: [apic1 -> localhost] => (item={'apic_tenants_name': 'PROD'}) => changed=true 
+  ansible_loop_var: item
+  current: []
+  item:
+    apic_tenants_name: PROD
+  mo:
+    fvTenant:
+      attributes:
+        annotation: orchestrator:ansible
+        dn: uni/tn-PROD
+        name: PROD
+
+TASK [present_apic : Create VRFs] ***************************************************************************************************************************************************************************************************************************************************************************
+changed: [apic1 -> localhost] => (item={'apic_tenants_name': 'PROD', 'apic_tenants_vrfs_name': 'PROD'}) => changed=true 
+  ansible_loop_var: item
+  current: []
+  item:
+    apic_tenants_name: PROD
+    apic_tenants_vrfs_name: PROD
+  mo:
+    fvCtx:
+      attributes:
+        annotation: orchestrator:ansible
+        dn: uni/tn-PROD/ctx-PROD
+        name: PROD
+
+TASK [present_apic : Create Bridge Domains] *****************************************************************************************************************************************************************************************************************************************************************
+skipping: [apic1] => changed=false 
+  skipped_reason: No items in the list
+
+PLAY RECAP **************************************************************************************************************************************************************************************************************************************************************************************************
+apic1                      : ok=2    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+```
+
 This will ensure that the tenant named "PROD" with a VRF also named "PROD" is present in the ACI environment.
 
 ## Author
