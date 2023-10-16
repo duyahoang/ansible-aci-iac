@@ -1,0 +1,84 @@
+---
+apic:
+  tenants:
+    - name: PROD
+
+      vrfs:
+        - name: PROD
+
+      bridge_domains:
+        - name: BD_VLAN100
+          vrf: PROD
+
+        - name: BD_VLAN101
+          vrf: PROD
+
+        - name: BD_VLAN102
+          vrf: PROD
+
+      l3outs:
+        - name: L3OUT1
+          vrf: VRF1
+          domain: ROUTED1
+          nodes:
+            - node_id: 101
+              router_id: 5.5.5.5
+              static_routes:
+                - prefix: 2.2.2.0/24
+                  next_hops:
+                    - ip: 6.6.6.6
+              interfaces:
+                - port: 6
+                  vlan: 3000
+                  ip: 14.14.14.1/24
+                  bgp_peers:
+                    - ip: 14.14.14.2
+                      remote_as: 65010
+                      bfd: true
+          external_endpoint_groups:
+            - name: EXT-EPG1
+              subnets:
+                - name: ALL
+                  prefix: 0.0.0.0/0
+              contracts:
+                consumers:
+                  - CON1
+
+      application_profiles:
+        - name: PROD
+          endpoint_groups:
+            - name: EPG_VLAN100
+              bridge_domain: BD_VLAN100
+              physical_domains:
+                - PHYSICAL1
+              static_ports:
+                - node_id: 101
+                  port: 1
+                  vlan: 100
+
+            - name: EPG_VLAN101
+              bridge_domain: BD_VLAN101
+              physical_domains:
+                - PHYSICAL1
+
+            - name: EPG_VLAN102
+              bridge_domain: BD_VLAN102
+              physical_domains:
+                - PHYSICAL1
+
+      filters:
+        - name: FILTER1
+          entries:
+            - name: HTTP1
+              ethertype: ip
+              protocol: tcp
+              destination_from_port: 80
+              stateful: true
+
+      contracts:
+        - name: CON1
+          subjects:
+            - name: SUB1
+              service_graph: SG-TEMPLATE1
+              filters:
+                - filter: FILTER1
