@@ -1,0 +1,11 @@
+---
+all:
+  children:
+    aci:
+      hosts:
+        apic1:
+          apic_host: <<apic_ip_address>>
+          apic_username: <<apic username>>
+          apic_password: <<apic_password>>
+          apic_use_proxy: no
+          apic_validate_certs: no
