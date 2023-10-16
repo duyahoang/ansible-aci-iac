@@ -39,6 +39,7 @@ The ACI data model is based on the official [Cisco ACI Data Model](https://devel
 ## Features
 
 - **Modular Design**: Easily extendable roles and tasks to fit specific requirements.
+  - `present_apic` role now only supports tenants, vrfs, and bridge domains, but can be easily extended using native Ansible ACI modules.
   
 - **Custom Filters**: Includes custom filters like `extractor` for enhanced data parsing and manipulation.
   
