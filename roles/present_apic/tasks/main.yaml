@@ -1,0 +1,35 @@
+- name: Push aci_model
+
+  # Reusable aci_login anchor
+  vars:
+    aci_login: &aci_login
+      hostname: '{{ apic_host }}'
+      username: '{{ apic_username }}'
+      password: '{{ apic_password }}'
+      use_proxy: '{{ apic_use_proxy }}'
+      validate_certs: '{{ apic_validate_certs }}'
+  delegate_to: localhost
+
+  block:
+  - name: Create Tenants
+    aci_tenant:
+      <<: *aci_login
+      tenant: '{{ item.apic_tenants_name }}'
+      description: '{{ item.apic_tenants_description | default(omit) }}'
+    with_items: '{{ apic_configuration|extractor("apic","tenants") }}'
+
+  - name: Create VRFs
+    aci_vrf:
+      <<: *aci_login
+      tenant: '{{ item.apic_tenants_name }}'
+      vrf_name: '{{ item.apic_tenants_vrfs_name }}'
+    with_items: '{{ apic_configuration|extractor("apic","tenants","vrfs") }}'
+
+  - name: Create Bridge Domains
+    aci_bd:
+      <<: *aci_login
+      tenant: '{{ item.apic_tenants_name }}'
+      vrf: '{{ item.apic_tenants_bridge_domains_vrf }}'
+      bd: '{{ item.apic_tenants_bridge_domains_name }}'
+      enable_routing: yes
+    with_items: '{{ apic_configuration|extractor("apic","tenants","bridge_domains") }}'
