@@ -1,13 +1,15 @@
 def extractor(data, *paths):
     """
-    Traverse the data based on the given path and return scalar values along the path.
+    Traverse the data based on the given path and return scalar values along \
+          the path.
 
     Args:
     - data (dict): The data to traverse.
     - paths (tuple): Path to traverse.
 
     Returns:
-    - List[Dict]: A list of dictionaries containing scalar values along the path.
+    - List[Dict]: A list of dictionaries containing scalar values along \
+          the path.
     """
 
     def extract_values(data, paths, prefix):
@@ -17,11 +19,19 @@ def extractor(data, *paths):
         if not paths:
             if isinstance(data, list):
                 for item in data:
-                    scalar_values = {prefix + k: v for k, v in item.items() if not isinstance(v, (dict, list))}
+                    scalar_values = {
+                        prefix + k: v
+                        for k, v in item.items()
+                        if not isinstance(v, (dict, list))
+                    }
                     if scalar_values:
                         results.append(scalar_values)
             elif isinstance(data, dict):
-                scalar_values = {prefix + k: v for k, v in data.items() if not isinstance(v, (dict, list))}
+                scalar_values = {
+                    prefix + k: v
+                    for k, v in data.items()
+                    if not isinstance(v, (dict, list))
+                }
                 if scalar_values:
                     results.append(scalar_values)
             return results
@@ -31,14 +41,24 @@ def extractor(data, *paths):
 
         # If data is a dictionary and contains current_path
         if isinstance(data, dict) and current_path in data:
-            return extract_values(data[current_path], rest_path, prefix + current_path + "_")
-        
+            return extract_values(
+                data[current_path], rest_path, prefix + current_path + "_"
+            )
+
         # If data is a list of dictionaries
         elif isinstance(data, list):
             for item in data:
                 if isinstance(item, dict) and current_path in item:
-                    scalars = {prefix + k: v for k, v in item.items() if not isinstance(v, (dict, list))}
-                    deeper_values = extract_values(item[current_path], rest_path, prefix + current_path + "_")
+                    scalars = {
+                        prefix + k: v
+                        for k, v in item.items()
+                        if not isinstance(v, (dict, list))
+                    }
+                    deeper_values = extract_values(
+                        item[current_path],
+                        rest_path,
+                        prefix + current_path + "_"
+                    )
                     for deeper_dict in deeper_values:
                         combined_dict = {**scalars, **deeper_dict}
                         results.append(combined_dict)
@@ -71,10 +91,7 @@ def deep_merge_dicts(dict1, dict2):
 
 
 class FilterModule(object):
-    ''' Ansible core jinja2 filters '''
+    """Ansible core jinja2 filters"""
 
     def filters(self):
-        return {
-            'extractor': extractor,
-            'deep_merge_dicts': deep_merge_dicts
-        }
+        return {"extractor": extractor, "deep_merge_dicts": deep_merge_dicts}
