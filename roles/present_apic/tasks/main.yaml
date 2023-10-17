@@ -3,11 +3,12 @@
   # Reusable aci_login anchor
   vars:
     aci_login: &aci_login
-      hostname: '{{ apic_host }}'
+      host: '{{ apic_host }}'
       username: '{{ apic_username }}'
       password: '{{ apic_password }}'
       use_proxy: '{{ apic_use_proxy }}'
       validate_certs: '{{ apic_validate_certs }}'
+      use_ssl: true
   delegate_to: localhost
 
   block:
