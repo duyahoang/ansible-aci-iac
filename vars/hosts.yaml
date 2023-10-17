@@ -9,3 +9,4 @@ all:
           apic_password: <<apic_password>>
           apic_use_proxy: no
           apic_validate_certs: no
+          data_directory: <<data_directory_contain_YAML_files>>

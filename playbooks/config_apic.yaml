@@ -1,7 +1,5 @@
 - name: Deploy APIC configuration
-  hosts: apic1
+  hosts: fabric1_apic1
   gather_facts: no
   roles:
   - role: present_apic
-    vars:
-      apic_configuration: "{{ lookup('file', '../vars/host_vars/apic1/apic_configuration.yaml') | from_yaml }}"

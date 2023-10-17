@@ -12,6 +12,13 @@
   delegate_to: localhost
 
   block:
+
+  - name: Read all YAML files in the data directory into apic_configuration
+    set_fact:
+      apic_configuration: "{{ apic_configuration | default({}) | deep_merge_dicts(lookup('file', item) | from_yaml) }}"
+    with_fileglob:
+        - "{{ data_directory }}/*.yaml"
+
   - name: Create Tenants
     aci_tenant:
       <<: *aci_login
