@@ -55,9 +55,7 @@ def extractor(data, *paths):
                         if not isinstance(v, (dict, list))
                     }
                     deeper_values = extract_values(
-                        item[current_path],
-                        rest_path,
-                        prefix + current_path + "_"
+                        item[current_path], rest_path, prefix + current_path + "_"
                     )
                     for deeper_dict in deeper_values:
                         combined_dict = {**scalars, **deeper_dict}
@@ -90,8 +88,23 @@ def deep_merge_dicts(dict1, dict2):
     return dict1
 
 
+def bool_converter(boolean):
+    """
+    Convert boolean true/false to enabled/disabled.
+    """
+    if isinstance(boolean, bool):
+        if boolean is True:
+            return "enabled"
+        return "disabled"
+    return boolean
+
+
 class FilterModule(object):
     """Ansible core jinja2 filters"""
 
     def filters(self):
-        return {"extractor": extractor, "deep_merge_dicts": deep_merge_dicts}
+        return {
+            "extractor": extractor,
+            "deep_merge_dicts": deep_merge_dicts,
+            "bool_converter": bool_converter,
+        }
