@@ -1,3 +1,4 @@
+# flake8: noqa E501
 def extractor(data, *paths):
     """
     Traverse the data based on the given path and return scalar values along \
