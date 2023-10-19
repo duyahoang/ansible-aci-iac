@@ -1,0 +1,20 @@
+defaults:
+  apic:
+    tenants:
+      vrfs:
+        data_plane_learning: true
+        enforcement_direction: ingress
+        enforcement_preference: enforced
+        preferred_group: false
+      bridge_domains:
+        mac: 00:22:BD:F8:19:FF
+        ep_move_detection: false
+        arp_flooding: true
+        ip_dataplane_learning: true
+        limit_ip_learn_to_subnets: true
+        multi_destination_flooding: bd-flood
+        unknown_unicast: flood
+        unknown_ipv4_multicast: flood
+        unknown_ipv6_multicast: flood
+        unicast_routing: true
+        l3_multicast: false

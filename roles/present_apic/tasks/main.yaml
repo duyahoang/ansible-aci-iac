@@ -20,57 +20,70 @@
     with_fileglob:
         - "{{ data_directory }}/*.yaml"
 
+  - name: Include default variables
+    include_vars: defaults/defaults.yaml
+
   - name: Create Tenants
+    vars:
+      paths: ["apic","tenants"]
     aci_tenant:
       <<: *aci_common
-      tenant: '{{ item.apic_tenants_name }}'
-      description: '{{ item.apic_tenants_description | default(omit) }}'
-      name_alias: '{{ item.apic_tenants_alias | default(omit) }}'
-    with_items: '{{ apic_configuration|extractor("apic","tenants") }}'
+      tenant: '{{ "apic_tenants_name" | value_getter(item, defaults, *paths) }}'
+      description: '{{ ("apic_tenants_description" | value_getter(item, defaults, *paths)) or omit }}'
+      name_alias: '{{ ("apic_tenants_alias" | value_getter(item, defaults, *paths)) or omit }}'
+      state: 'present'
+    with_items: '{{ apic_configuration | extractor(*paths) }}'
 
   - name: Create VRFs
+    vars:
+      paths: ["apic", "tenants", "vrfs"]
     aci_vrf:
       <<: *aci_common
-      tenant: '{{ item.apic_tenants_name }}'
-      vrf_name: '{{ item.apic_tenants_vrfs_name }}'
-      description: '{{ item.apic_tenants_vrfs_description | default(omit) }}'
-      name_alias: '{{ item.apic_tenants_vrfs_alias | default(omit) }}'
-      ip_data_plane_learning: '{{  item.apic_tenants_vrfs_data_plane_learning | default("enabled") | bool_converter() }}'
-      policy_control_direction: '{{ item.apic_tenants_vrfs_enforcement_direction | default("ingress") }}'
-      policy_control_preference: '{{ item.apic_tenants_vrfs_enforcement_preference | default("enforced") }}'
-      preferred_group: '{{ item.apic_tenants_vrfs_preferred_group | default("disabled") | bool_converter() }}'
+      tenant: '{{ "apic_tenants_name" | value_getter(item, defaults, *paths) }}'
+      vrf: '{{ "apic_tenants_vrfs_name" | value_getter(item, defaults, *paths) }}'
+      description: '{{ ("apic_tenants_vrfs_description" | value_getter(item, defaults, *paths)) or omit }}'
+      name_alias: '{{ ("apic_tenants_vrfs_alias" | value_getter(item, defaults, *paths)) or omit }}'
+      ip_data_plane_learning: '{{ ("apic_tenants_vrfs_data_plane_learning" | value_getter(item, defaults, *paths) | bool_converter()) or omit}}'
+      policy_control_direction: '{{ ("apic_tenants_vrfs_enforcement_direction" | value_getter(item, defaults, *paths)) or omit }}'
+      policy_control_direction: '{{ ("apic_tenants_vrfs_enforcement_direction" | value_getter(item, defaults, *paths)) or omit }}'
+      policy_control_preference: '{{ ("apic_tenants_vrfs_enforcement_preference" | value_getter(item, defaults, *paths)) or omit }}'
+      preferred_group: '{{ ("apic_tenants_vrfs_preferred_group" | value_getter(item, defaults, *paths) | bool_converter()) or omit }}'
       # '{{ item.apic_tenants_vrfs_leaked_internal_prefixes }}'
       # '{{ item.apic_tenants_vrfs_leaked_external_prefixes }}'
       # '{{ item.apic_tenants_vrfs_contracts }}'
       # '{{ item.apic_tenants_vrfs_bgp }}'
       # '{{ item.apic_tenants_vrfs_dns_labels }}'
       # '{{ item.apic_tenants_vrfs_pim }}'
-    with_items: '{{ apic_configuration|extractor("apic","tenants","vrfs") }}'
+      state: 'present'
+    with_items: '{{ apic_configuration | extractor(*paths) }}'
 
   - name: Create Bridge Domains
+    vars:
+      paths: ["apic","tenants","bridge_domains"]
     aci_bd:
       <<: *aci_common
-      tenant: '{{ item.apic_tenants_name }}'
-      vrf: '{{ item.apic_tenants_bridge_domains_vrf }}'
-      bd: '{{ item.apic_tenants_bridge_domains_name }}'
-      name_alias: '{{ item.apic_tenants_bridge_domains_alias | default(omit) }}'
-      description: '{{ item.apic_tenants_bridge_domains_description | default(omit) }}'
-      arp_flooding: '{{ item.apic_tenants_bridge_domains_arp_flooding | default(true) }}'
+      tenant: '{{ "apic_tenants_name" | value_getter(item, defaults, *paths) }}'
+      vrf: '{{ "apic_tenants_bridge_domains_vrf" | value_getter(item, defaults, *paths) }}'
+      bd: '{{ "apic_tenants_bridge_domains_name" | value_getter(item, defaults, *paths) }}'
+      name_alias: '{{ ("apic_tenants_bridge_domains_alias" | value_getter(item, defaults, *paths)) or omit }}'
+      description: '{{ ("apic_tenants_bridge_domains_description" | value_getter(item, defaults, *paths)) or omit }}'
+      arp_flooding: '{{ ("apic_tenants_bridge_domains_arp_flooding" | value_getter(item, defaults, *paths)) or omit }}'
       # advertise_host_routes
-      ip_learning: '{{ item.apic_tenants_bridge_domains_ip_dataplane_learning | default(omit) }}'
-      limit_ip_learn: '{{ item.apic_tenants_bridge_domains_limit_ip_learn_to_subnets | default(omit) }}'
-      mac_address: '{{ item.apic_tenants_bridge_domains_mac | default(omit) }}'
+      ip_learning: '{{ ("apic_tenants_bridge_domains_ip_dataplane_learning" | value_getter(item, defaults, *paths)) or omit }}'
+      limit_ip_learn: '{{ ("apic_tenants_bridge_domains_limit_ip_learn_to_subnets" | value_getter(item, defaults, *paths)) or omit }}'
+      mac_address: '{{ ("apic_tenants_bridge_domains_mac" | value_getter(item, defaults, *paths)) or omit }}'
       # virtual_mac
-      endpoint_move_detect: '{{ "garp" if (item.apic_tenants_bridge_domains_ep_move_detection | default(false)) else "default" }}'
-      enable_multicast: '{{ item.apic_tenants_bridge_domains_l3_multicast | default(omit) }}'
-      multi_dest: '{{ item.apic_tenants_bridge_domains_multi_destination_flooding | default(omit) }}'
-      enable_routing: '{{ item.apic_tenants_bridge_domains_unicast_routing | default(omit) }}'
-      l2_unknown_unicast: '{{ item.apic_tenants_bridge_domains_unknown_unicast | default("flood") }}'
-      l3_unknown_multicast: '{{ item.apic_tenants_bridge_domains_unknown_ipv4_multicast | default(omit) }}'
-      ipv6_l3_unknown_multicast: '{{ item.apic_tenants_bridge_domains_unknown_ipv6_multicast | default(omit) }}'
+      endpoint_move_detect: '{{ "garp" if ("apic_tenants_bridge_domains_ep_move_detection" | value_getter(item, defaults, *paths)) else "default" }}'
+      enable_multicast: '{{("apic_tenants_bridge_domains_l3_multicast" | value_getter(item, defaults, *paths)) or omit }}'
+      multi_dest: '{{ ("apic_tenants_bridge_domains_multi_destination_flooding" | value_getter(item, defaults, *paths)) or omit }}'
+      enable_routing: '{{ ("apic_tenants_bridge_domains_unicast_routing" | value_getter(item, defaults, *paths)) or omit }}'
+      l2_unknown_unicast: '{{ ("apic_tenants_bridge_domains_unknown_unicast" | value_getter(item, defaults, *paths)) or omit }}'
+      l3_unknown_multicast: '{{ ("apic_tenants_bridge_domains_unknown_ipv4_multicast" | value_getter(item, defaults, *paths)) or omit }}'
+      ipv6_l3_unknown_multicast: '{{ ("apic_tenants_bridge_domains_unknown_ipv6_multicast" | value_getter(item, defaults, *paths)) or omit}}'
       # subnets
       # l3outs
       # dhcp_labels
       # igmp_interface_policy
-      igmp_snoop_policy: '{{ item.apic_tenants_bridge_domains_igmp_snooping_policy | default(omit) }}'
-    with_items: '{{ apic_configuration|extractor("apic","tenants","bridge_domains") }}'
+      igmp_snoop_policy: '{{ ("apic_tenants_bridge_domains_igmp_snooping_policy" | value_getter(item, defaults, *paths)) or omit }}'
+      state: 'present'
+    with_items: '{{ apic_configuration | extractor(*paths) }}'

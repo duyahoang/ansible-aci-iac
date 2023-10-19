@@ -1,4 +1,7 @@
 # flake8: noqa E501
+from ansible.errors import AnsibleError
+import yaml
+
 def extractor(data, *paths):
     """
     Traverse the data based on the given path and return scalar values along \
@@ -100,6 +103,19 @@ def bool_converter(boolean):
     return boolean
 
 
+def value_getter(value_name, item, defaults_dict, *paths):
+    value = item.get(value_name, None)
+    # If value is None or doesn't exist, fetch the default
+    if value is not None:
+        return value
+    
+    results = extractor(defaults_dict, *paths)
+    if not results or value_name not in results[0]:
+        return None
+
+    return results[0][value_name]
+
+
 class FilterModule(object):
     """Ansible core jinja2 filters"""
 
@@ -108,4 +124,5 @@ class FilterModule(object):
             "extractor": extractor,
             "deep_merge_dicts": deep_merge_dicts,
             "bool_converter": bool_converter,
+            "value_getter": value_getter
         }
