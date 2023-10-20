@@ -9,6 +9,13 @@ apic:
       bridge_domains:
         - name: BD_VLAN100
           vrf: PROD
+          subnets:
+            - ip: 1.1.1.1/24
+              public: true
+              private: false
+              shared: true
+            - ip: 1.1.1.2/24
+              no_default_gateway: true
 
         - name: BD_VLAN101
           vrf: PROD

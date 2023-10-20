@@ -18,3 +18,12 @@ defaults:
         unknown_ipv6_multicast: flood
         unicast_routing: true
         l3_multicast: false
+        subnets:
+          primary_ip: false
+          public: false
+          private: true
+          shared: false
+          virtual: false
+          no_default_gateway: false
+          igmp_querier: false
+          nd_ra_prefix: true

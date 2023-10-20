@@ -116,6 +116,28 @@ def value_getter(value_name, item, defaults_dict, *paths):
     return results[0][value_name]
 
 
+def list_assembler(item, options, names, defaults_dict, *paths):
+    results = []
+    defaults = extractor(defaults_dict, *paths)
+    for index, data in enumerate(names):
+        if data in item:
+            if item[data]:
+                results.append(options[index])
+        elif results and data in defaults[0] and defaults[0][data]:
+            results.append(options[index])
+    return results
+
+def ip_cidr_extractor(data, part):
+    ip_address, _, cidr = data.partition('/')
+    
+    if part == "ip":
+        return ip_address
+    elif part == "cidr":
+        return cidr
+    else:
+        raise ValueError("The 'part' argument must be either 'ip' or 'cidr'.")
+
+
 class FilterModule(object):
     """Ansible core jinja2 filters"""
 
@@ -124,5 +146,7 @@ class FilterModule(object):
             "extractor": extractor,
             "deep_merge_dicts": deep_merge_dicts,
             "bool_converter": bool_converter,
-            "value_getter": value_getter
+            "value_getter": value_getter,
+            "list_assembler": list_assembler,
+            "ip_cidr_extractor": ip_cidr_extractor
         }
