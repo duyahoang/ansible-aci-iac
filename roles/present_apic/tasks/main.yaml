@@ -10,6 +10,7 @@
       validate_certs: '{{ apic_validate_certs }}'
       use_ssl: true
       annotation: '{{ annotation | default("orchestrator:ansible") }}'
+      state: 'present'
   delegate_to: localhost
 
   block:
@@ -32,7 +33,6 @@
       tenant: '{{ (prefix + "name") | value_getter(item, defaults, *paths) }}'
       description: '{{ (prefix + "description") | value_getter(item, defaults, *paths) or omit }}'
       name_alias: '{{ (prefix + "alias") | value_getter(item, defaults, *paths) or omit }}'
-      state: 'present'
     with_items: '{{ apic_configuration | extractor(*paths) }}'
 
   - name: Create VRFs
@@ -55,7 +55,6 @@
       # '{{ item.apic_tenants_vrfs_bgp }}'
       # '{{ item.apic_tenants_vrfs_dns_labels }}'
       # '{{ item.apic_tenants_vrfs_pim }}'
-      state: 'present'
     with_items: '{{ apic_configuration | extractor(*paths) }}'
 
   - name: Create Bridge Domains
@@ -86,7 +85,6 @@
       # dhcp_labels
       # igmp_interface_policy
       igmp_snoop_policy: '{{ (prefix + "igmp_snooping_policy") | value_getter(item, defaults, *paths) or omit }}'
-      state: 'present'
     with_items: '{{ apic_configuration | extractor(*paths) }}'
 
   - name: Create Bridge Domains Subnets
@@ -106,5 +104,16 @@
       scope: '{{ item | list_assembler(scope_options, scope_names, defaults, *paths) or omit }}'
       enable_vip: '{{ (prefix + "virtual") | value_getter(item, defaults, *paths) or omit }}'
       subnet_control: '{{ "no_gw" if (prefix + "no_default_gateway") | value_getter(item, defaults, *paths) else "querier_ip" if (prefix + "igmp_querier") | value_getter(item, defaults, *paths) else "nd_ra" if (prefix + "nd_ra_prefix") | value_getter(item, defaults, *paths) else omit }}'
-      state: 'present'
+    with_items: '{{ apic_configuration | extractor(*paths) }}'
+
+  - name: Create Application Profiles
+    vars:
+      paths: ["apic", "tenants", "application_profiles"]
+      prefix: "apic_tenants_application_profiles_"
+    aci_ap:
+      <<: *aci_common
+      tenant: '{{ "apic_tenants_name" | value_getter(item, defaults, *paths) }}'
+      ap: '{{ (prefix + "name") | value_getter(item, defaults, *paths) }}'
+      name_alias: '{{ (prefix + "alias") | value_getter(item, defaults, *paths) or omit }}'
+      description: '{{ (prefix + "description") | value_getter(item, defaults, *paths) or omit }}'
     with_items: '{{ apic_configuration | extractor(*paths) }}'
