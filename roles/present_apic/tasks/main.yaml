@@ -33,7 +33,7 @@
       tenant: '{{ (prefix + "name") | value_getter(item, defaults, *paths) }}'
       description: '{{ (prefix + "description") | value_getter(item, defaults, *paths) or omit }}'
       name_alias: '{{ (prefix + "alias") | value_getter(item, defaults, *paths) or omit }}'
-    with_items: '{{ apic_configuration | extractor(*paths) }}'
+    loop: '{{ apic_configuration | extractor(*paths) }}'
 
   - name: Create VRFs
     vars:
@@ -55,7 +55,7 @@
       # '{{ item.apic_tenants_vrfs_bgp }}'
       # '{{ item.apic_tenants_vrfs_dns_labels }}'
       # '{{ item.apic_tenants_vrfs_pim }}'
-    with_items: '{{ apic_configuration | extractor(*paths) }}'
+    loop: '{{ apic_configuration | extractor(*paths) }}'
 
   - name: Create Bridge Domains
     vars:
@@ -85,7 +85,7 @@
       # dhcp_labels
       # igmp_interface_policy
       igmp_snoop_policy: '{{ (prefix + "igmp_snooping_policy") | value_getter(item, defaults, *paths) or omit }}'
-    with_items: '{{ apic_configuration | extractor(*paths) }}'
+    loop: '{{ apic_configuration | extractor(*paths) }}'
 
   - name: Create Bridge Domains Subnets
     vars:
@@ -104,7 +104,7 @@
       scope: '{{ item | list_assembler(scope_options, scope_names, defaults, *paths) or omit }}'
       enable_vip: '{{ (prefix + "virtual") | value_getter(item, defaults, *paths) or omit }}'
       subnet_control: '{{ "no_gw" if (prefix + "no_default_gateway") | value_getter(item, defaults, *paths) else "querier_ip" if (prefix + "igmp_querier") | value_getter(item, defaults, *paths) else "nd_ra" if (prefix + "nd_ra_prefix") | value_getter(item, defaults, *paths) else omit }}'
-    with_items: '{{ apic_configuration | extractor(*paths) }}'
+    loop: '{{ apic_configuration | extractor(*paths) }}'
 
   - name: Create Application Profiles
     vars:
@@ -116,4 +116,63 @@
       ap: '{{ (prefix + "name") | value_getter(item, defaults, *paths) }}'
       name_alias: '{{ (prefix + "alias") | value_getter(item, defaults, *paths) or omit }}'
       description: '{{ (prefix + "description") | value_getter(item, defaults, *paths) or omit }}'
-    with_items: '{{ apic_configuration | extractor(*paths) }}'
+    loop: '{{ apic_configuration | extractor(*paths) }}'
+
+  - name: Create Endpoint Groups
+    vars:
+      paths: ["apic", "tenants", "application_profiles", "endpoint_groups"]
+      prefix: "apic_tenants_application_profiles_endpoint_groups_"
+    aci_epg:
+      <<: *aci_common
+      tenant: '{{ "apic_tenants_name" | value_getter(item, defaults, *paths) }}'
+      ap: '{{ "apic_tenants_application_profiles_name" | value_getter(item, defaults, *paths) }}'
+      epg: '{{ (prefix + "name") | value_getter(item, defaults, *paths) }}'
+      name_alias: '{{ (prefix + "alias") | value_getter(item, defaults, *paths) or omit }}'
+      description: '{{ (prefix + "description") | value_getter(item, defaults, *paths) or omit }}'
+      bd: '{{ (prefix + "bridge_domain") | value_getter(item, defaults, *paths) or omit }}'
+      preferred_group: '{{ (prefix + "preferred_group") | value_getter(item, defaults, *paths) or omit }}'
+      intra_epg_isolation: '{{ (prefix + "intra_epg_isolation") | value_getter(item, defaults, *paths) or omit }}'
+      fwd_control: '{{ "proxy-arp" if (prefix + "proxy_arp") | value_getter(item, defaults, *paths) else omit }}'
+      custom_qos_policy: '{{ (prefix + "custom_qos_policy") | value_getter(item, defaults, *paths) or omit }}'
+      priority: '{{ (prefix + "qos_class") | value_getter(item, defaults, *paths) or omit }}'
+      # flood_in_encap
+      # vmware_vmm_domains
+      # static_ports
+      # static_endpoints
+      # subnets
+      # contracts
+      # tags
+      # trust_control_policy
+      # l4l7_virtual_ips
+      # l4l7_address_pools
+    loop: '{{ apic_configuration | extractor(*paths) }}'
+  
+  - name: Bind EPGs to Physical Domains
+    vars:
+      paths: ["apic", "tenants", "application_profiles", "endpoint_groups", "physical_domains"]
+      prefix: "apic_tenants_application_profiles_endpoint_groups_"
+    aci_epg_to_domain:
+      <<: *aci_common
+      tenant: '{{ "apic_tenants_name" | value_getter(item.0, defaults, *paths) }}'
+      ap: '{{ "apic_tenants_application_profiles_name" | value_getter(item.0, defaults, *paths) }}'
+      epg: '{{ (prefix + "name") | value_getter(item.0, defaults, *paths) }}'
+      domain: '{{ item.1 }}'
+      domain_type: "phys"
+    loop: '{{ apic_configuration | extractor(*paths) | subelements(prefix + "physical_domains") }}'
+
+  - name: Set Static paths configuration
+    vars:
+      paths: ["apic", "tenants", "application_profiles", "endpoint_groups", "static_ports"]
+    set_fact:
+      static_paths: '{{ apic_configuration | extractor(*paths) }}'
+
+  - name: Bind Static paths to EPGs
+    vars:
+      paths: ["apic", "tenants", "application_profiles", "endpoint_groups", "static_ports"]
+    cisco.aci.aci_bulk_static_binding_to_epg:
+      <<: *aci_common
+      tenant: '{{ item.tenant }}'
+      ap: '{{ item.ap }}'
+      epg: '{{ item.epg }}'
+      interface_configs: '{{ item.interface_configs }}'
+    loop: '{{ static_paths | static_ports_assembler(defaults, *paths) }}'

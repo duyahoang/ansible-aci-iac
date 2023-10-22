@@ -1,6 +1,7 @@
 # flake8: noqa E501
 from ansible.errors import AnsibleError
 import yaml
+import json
 
 def extractor(data, *paths):
     """
@@ -23,6 +24,11 @@ def extractor(data, *paths):
         if not paths:
             if isinstance(data, list):
                 for item in data:
+                    if not isinstance(item, (dict, list)):
+                        results.append({prefix[:-1]: data})
+                for item in data:
+                    if not isinstance(item, dict):
+                        break
                     scalar_values = {
                         prefix + k: v
                         for k, v in item.items()
@@ -138,6 +144,91 @@ def ip_cidr_extractor(data, part):
         raise ValueError("The 'part' argument must be either 'ip' or 'cidr'.")
 
 
+def static_ports_assembler(data, defaults_dict, *paths):
+    result = []
+    grouped_data = {}
+    prefix = "apic_tenants_application_profiles_endpoint_groups_static_ports"
+    defaults = extractor(defaults_dict, *paths)
+
+    for entry in data:
+        if defaults:
+            for default_key, default_value in defaults[0].items():
+                if default_key not in entry:
+                    entry[default_key] = default_value
+        
+        key = (entry['apic_tenants_name'], entry['apic_tenants_application_profiles_name'], entry['apic_tenants_application_profiles_endpoint_groups_name'])
+        if key not in grouped_data:
+            grouped_data[key] = {
+                "tenant": entry['apic_tenants_name'],
+                "ap": entry['apic_tenants_application_profiles_name'],
+                "epg": entry['apic_tenants_application_profiles_endpoint_groups_name'],
+                "interface_configs": []
+            }
+
+        if f'{prefix}_node2_id' in entry:
+            leafs = [entry[f'{prefix}_node_id'], entry[f'{prefix}_node2_id']]
+        else:
+            leafs = entry[f'{prefix}_node_id']
+
+        extpaths = []
+        if f'{prefix}_node_id' in entry and f'{prefix}_channel' not in entry:
+            pod_id = entry[f'{prefix}_pod_id']
+            if f'{prefix}_sub_port' in entry:
+                interface = f'{entry[prefix + "_module"]}/{entry[prefix + "_port"]}/{entry[prefix + "_sub_port"]}'
+                interface_type = 'switch_port'
+            elif f'{prefix}_fex_id' in entry:
+                extpaths = [str(entry[f'{prefix}_fex_id'])]
+                interface = f'{entry[prefix + "_module"]}/{entry[prefix + "_port"]}'
+                interface_type = 'fex'
+            else:
+                interface = f'{entry[prefix + "_module"]}/{entry[prefix + "_port"]}'
+                interface_type = 'switch_port'
+        else:
+            interface = entry[f'{prefix}_channel']
+            if f'{prefix}_node2_id' in entry:
+                interface_type = 'vpc'
+            else:
+                interface_type = 'port_channel'
+
+        interface_config = {
+            "encap_id": entry[f'{prefix}_vlan'],
+            "interface": interface,
+            "leafs": leafs,
+            "pod_id": pod_id,
+            "interface_mode": entry[f'{prefix}_mode'],
+            "deploy_immediacy": entry[f'{prefix}_deployment_immediacy'],
+            "interface_type" : interface_type,
+        }
+        if extpaths:
+            interface_config["extpaths"] = extpaths
+        if f'{prefix}_description' in entry:
+            interface_config["description"] = entry[f'{prefix}_description'] 
+
+        grouped_data[key]['interface_configs'].append(interface_config)
+
+    result = list(grouped_data.values())
+    return result
+
+
+
+# with open('/Users/duyhoan/Documents/GitHub-Cisco/Small Scripts/ansible-aci-iac/vars/host_vars/apic1/apic_configuration.yaml', 'r') as file:
+#     content = file.read()
+with open('/Users/duyhoan/Documents/GitHub-Cisco/Small Scripts/ansible-aci-iac/roles/present_apic/defaults/defaults.yaml', 'r') as file:
+    content2 = file.read()
+
+# config1 = yaml.safe_load(content)
+default_data = yaml.safe_load(content2)
+default = default_data["defaults"]
+data = [{'apic_tenants_name': 'PROD', 'apic_tenants_application_profiles_name': 'PROD', 'apic_tenants_application_profiles_endpoint_groups_name': 'EPG_VLAN100', 'apic_tenants_application_profiles_endpoint_groups_bridge_domain': 'BD_VLAN100', 'apic_tenants_application_profiles_endpoint_groups_static_ports_node_id': 101, 'apic_tenants_application_profiles_endpoint_groups_static_ports_port': 1, 'apic_tenants_application_profiles_endpoint_groups_static_ports_vlan': 100}, {'apic_tenants_name': 'PROD', 'apic_tenants_application_profiles_name': 'PROD', 'apic_tenants_application_profiles_endpoint_groups_name': 'EPG_VLAN100', 'apic_tenants_application_profiles_endpoint_groups_bridge_domain': 'BD_VLAN100', 'apic_tenants_application_profiles_endpoint_groups_static_ports_node_id': 102, 'apic_tenants_application_profiles_endpoint_groups_static_ports_port': 1, 'apic_tenants_application_profiles_endpoint_groups_static_ports_vlan': 100}, {'apic_tenants_name': 'PROD', 'apic_tenants_application_profiles_name': 'PROD', 'apic_tenants_application_profiles_endpoint_groups_name': 'EPG_VLAN101', 'apic_tenants_application_profiles_endpoint_groups_bridge_domain': 'BD_VLAN101', 'apic_tenants_application_profiles_endpoint_groups_static_ports_node_id': 101, 'apic_tenants_application_profiles_endpoint_groups_static_ports_port': 1, 'apic_tenants_application_profiles_endpoint_groups_static_ports_vlan': 101}, {'apic_tenants_name': 'PROD', 'apic_tenants_application_profiles_name': 'PROD', 'apic_tenants_application_profiles_endpoint_groups_name': 'EPG_VLAN101', 'apic_tenants_application_profiles_endpoint_groups_bridge_domain': 'BD_VLAN101', 'apic_tenants_application_profiles_endpoint_groups_static_ports_node_id': 102, 'apic_tenants_application_profiles_endpoint_groups_static_ports_port': 1, 'apic_tenants_application_profiles_endpoint_groups_static_ports_vlan': 101}]
+out = static_ports_assembler(data, default, "apic", "tenants", "application_profiles", "endpoint_groups", "static_ports")
+print(json.dumps(out, indent=2))
+
+# scope_options = ["public", "private", "shared"]
+# scope_names = ["apic_tenants_bridge_domains_subnets_public", "apic_tenants_bridge_domains_subnets_private", "apic_tenants_bridge_domains_subnets_shared"]
+
+# print(list_assembler({"apic_tenants_bridge_domains_subnets_private": False, "apic_tenants_bridge_domains_subnets_public": True, "apic_tenants_bridge_domains_subnets_shared": True}, scope_options, scope_names, default,"apic","tenants","bridge_domains","subnets"))
+# print(extractor(config1, "apic", "tenants", "application_profiles", "endpoint_groups", "static_ports"))
+
 class FilterModule(object):
     """Ansible core jinja2 filters"""
 
@@ -148,5 +239,6 @@ class FilterModule(object):
             "bool_converter": bool_converter,
             "value_getter": value_getter,
             "list_assembler": list_assembler,
-            "ip_cidr_extractor": ip_cidr_extractor
+            "ip_cidr_extractor": ip_cidr_extractor,
+            "static_ports_assembler": static_ports_assembler
         }

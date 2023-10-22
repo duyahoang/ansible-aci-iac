@@ -62,11 +62,21 @@ apic:
                 - node_id: 101
                   port: 1
                   vlan: 100
+                - node_id: 102
+                  port: 1
+                  vlan: 100
 
             - name: EPG_VLAN101
               bridge_domain: BD_VLAN101
               physical_domains:
                 - PHYSICAL1
+              static_ports:
+                - node_id: 101
+                  port: 1
+                  vlan: 101
+                - node_id: 102
+                  port: 1
+                  vlan: 101
 
             - name: EPG_VLAN102
               bridge_domain: BD_VLAN102
