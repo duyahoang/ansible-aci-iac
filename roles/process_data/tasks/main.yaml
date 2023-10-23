@@ -1,0 +1,54 @@
+- name: Process data
+  vars:
+    paths_models:
+      - "apic/tenants"
+      - "apic/tenants/vrfs"
+      - "apic/tenants/bridge_domains"
+      - "apic/tenants/bridge_domains/subnets"
+      - "apic/tenants/application_profiles"
+      - "apic/tenants/application_profiles/endpoint_groups"
+      - "apic/tenants/application_profiles/endpoint_groups/physical_domains"
+      - "apic/tenants/application_profiles/endpoint_groups/static_ports"
+
+  block:
+
+  - name: Read all YAML files in the data_directory into apic_configuration
+    set_fact:
+      apic_configuration: "{{ apic_configuration | default({}) | deep_merge_dicts(lookup('file', item) | from_yaml) }}"
+    with_fileglob:
+        - "{{ data_directory }}/*.yaml"
+
+  - name: Read all YAML files in the previous_data_directory into previous_apic_configuration
+    set_fact:
+      previous_apic_configuration: "{{ previous_apic_configuration | default({}) | deep_merge_dicts(lookup('file', item) | from_yaml) }}"
+    with_fileglob:
+        - "{{ previous_data_directory }}/*.yaml"
+    when: previous_data_directory is defined and previous_data_directory
+
+  - name: Set previous_apic_configuration as empty dict if no previous_data_directory
+    set_fact:
+      previous_apic_configuration: {}
+    when: previous_data_directory is not defined or not previous_data_directory
+
+  - name: Include default variables
+    include_vars: defaults/defaults.yaml
+
+  - name: Construct current_extracted_data
+    set_fact:
+      current_extracted_data: "{{ current_extracted_data | default({}) | combine({item: apic_configuration | extractor(defaults, item)}) }}"
+    loop: "{{ paths_models }}"
+
+  - name: Construct previous_extracted_data
+    set_fact:
+      previous_extracted_data: "{{ previous_extracted_data | default({}) | combine({item: previous_apic_configuration | extractor(defaults, item)}) }}"
+    loop: "{{ paths_models }}"
+    when: previous_apic_configuration is defined and previous_apic_configuration
+  
+  - name: Construct present_extracted_data
+    set_fact:
+      present_extracted_data: "{{ previous_extracted_data | present_extracted_data_assembler(current_extracted_data) if previous_extracted_data is defined and previous_extracted_data else current_extracted_data }}"
+
+  - name: Construct absent_extracted_data
+    set_fact:
+      absent_extracted_data: "{{ previous_extracted_data | absent_extracted_data_assembler(current_extracted_data) if previous_extracted_data is defined and previous_extracted_data else {} }}"
+

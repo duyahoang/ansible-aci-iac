@@ -5,136 +5,146 @@
     aci_common: &aci_common
       host: '{{ apic_host }}'
       username: '{{ apic_username }}'
-      password: '{{ apic_password }}'
-      use_proxy: '{{ apic_use_proxy }}'
-      validate_certs: '{{ apic_validate_certs }}'
+      password: '{{ apic_password | default(omit) }}'
+      use_proxy: '{{ apic_use_proxy | default(omit) }}'
+      validate_certs: '{{ apic_validate_certs | default(omit) }}'
       use_ssl: true
       annotation: '{{ annotation | default("orchestrator:ansible") }}'
       state: 'present'
+    paths_models:
+      - "apic/tenants"
+      - "apic/tenants/vrfs"
+      - "apic/tenants/bridge_domains"
+      - "apic/tenants/bridge_domains/subnets"
+      - "apic/tenants/application_profiles"
+      - "apic/tenants/application_profiles/endpoint_groups"
+      - "apic/tenants/application_profiles/endpoint_groups/physical_domains"
+      - "apic/tenants/application_profiles/endpoint_groups/static_ports"
+
   delegate_to: localhost
 
   block:
 
-  - name: Read all YAML files in the data directory into apic_configuration
-    set_fact:
-      apic_configuration: "{{ apic_configuration | default({}) | deep_merge_dicts(lookup('file', item) | from_yaml) }}"
-    with_fileglob:
-        - "{{ data_directory }}/*.yaml"
-
-  - name: Include default variables
-    include_vars: defaults/defaults.yaml
+  - name: Inlcude process_data role
+    include_role:
+      name: process_data
   
   - name: Create Tenants
     vars:
-      paths: ["apic","tenants"]
+      path: "apic/tenants"
       prefix: "apic_tenants_"
     aci_tenant:
       <<: *aci_common
-      tenant: '{{ (prefix + "name") | value_getter(item, defaults, *paths) }}'
-      description: '{{ (prefix + "description") | value_getter(item, defaults, *paths) or omit }}'
-      name_alias: '{{ (prefix + "alias") | value_getter(item, defaults, *paths) or omit }}'
-    loop: '{{ apic_configuration | extractor(*paths) }}'
+      tenant: '{{ item[prefix + "name"] }}'
+      description: '{{ item[prefix + "description"] | default(omit, true) }}'
+      name_alias: '{{ item[prefix + "alias"] | default(omit, true) }}'
+    loop: '{{ present_extracted_data[path] }}'
+    when: path in present_extracted_data
 
   - name: Create VRFs
     vars:
-      paths: ["apic", "tenants", "vrfs"]
+      path: "apic/tenants/vrfs"
       prefix: "apic_tenants_vrfs_"
     aci_vrf:
       <<: *aci_common
-      tenant: '{{ "apic_tenants_name" | value_getter(item, defaults, *paths) }}'
-      vrf: '{{ (prefix + "name") | value_getter(item, defaults, *paths) }}'
-      description: '{{ (prefix + "description") | value_getter(item, defaults, *paths) or omit }}'
-      name_alias: '{{ (prefix + "alias") | value_getter(item, defaults, *paths) or omit }}'
-      ip_data_plane_learning: '{{ (prefix + "data_plane_learning") | value_getter(item, defaults, *paths) | bool_converter() or omit }}'
-      policy_control_direction: '{{ (prefix + "enforcement_direction") | value_getter(item, defaults, *paths) or omit }}'
-      policy_control_preference: '{{ (prefix + "enforcement_preference") | value_getter(item, defaults, *paths) or omit }}'
-      preferred_group: '{{ (prefix + "preferred_group") | value_getter(item, defaults, *paths) | bool_converter() or omit }}'
+      tenant: '{{ item["apic_tenants_name"] }}'
+      vrf: '{{ item[prefix + "name"] }}'
+      description: '{{ item[prefix + "description"] | default(omit, true) }}'
+      name_alias: '{{ item[prefix + "alias"] | default(omit, true) }}'
+      ip_data_plane_learning: '{{ item[prefix + "data_plane_learning"] | bool_converter() | default(omit, true) }}'
+      policy_control_direction: '{{ item[prefix + "enforcement_direction"] | default(omit, true) }}'
+      policy_control_preference: '{{ item[prefix + "enforcement_preference"] | default(omit, true) }}'
+      preferred_group: '{{ item[prefix + "preferred_group"] | bool_converter() | default(omit, true) }}'
       # '{{ item.apic_tenants_vrfs_leaked_internal_prefixes }}'
       # '{{ item.apic_tenants_vrfs_leaked_external_prefixes }}'
       # '{{ item.apic_tenants_vrfs_contracts }}'
       # '{{ item.apic_tenants_vrfs_bgp }}'
       # '{{ item.apic_tenants_vrfs_dns_labels }}'
       # '{{ item.apic_tenants_vrfs_pim }}'
-    loop: '{{ apic_configuration | extractor(*paths) }}'
+    loop: '{{ present_extracted_data[path] }}'
+    when: path in present_extracted_data
 
   - name: Create Bridge Domains
     vars:
-      paths: ["apic","tenants","bridge_domains"]
+      path: "apic/tenants/bridge_domains"
       prefix: "apic_tenants_bridge_domains_"
     aci_bd:
       <<: *aci_common
-      tenant: '{{ "apic_tenants_name" | value_getter(item, defaults, *paths) }}'
-      vrf: '{{ (prefix + "vrf") | value_getter(item, defaults, *paths) }}'
-      bd: '{{ (prefix + "name") | value_getter(item, defaults, *paths) }}'
-      name_alias: '{{ (prefix + "alias") | value_getter(item, defaults, *paths) or omit }}'
-      description: '{{ (prefix + "description") | value_getter(item, defaults, *paths) or omit }}'
-      arp_flooding: '{{ (prefix + "arp_flooding") | value_getter(item, defaults, *paths) or omit }}'
+      tenant: '{{ item["apic_tenants_name"] }}'
+      vrf: '{{ item[prefix + "vrf"] }}'
+      bd: '{{ item[prefix + "name"] }}'
+      name_alias: '{{ item[prefix + "alias"] | default(omit, true) }}'
+      description: '{{ item[prefix + "description"] | default(omit, true) }}'
+      arp_flooding: '{{ item[prefix + "arp_flooding"] | default(omit) }}'
       # advertise_host_routes
-      ip_learning: '{{ (prefix + "ip_dataplane_learning") | value_getter(item, defaults, *paths) or omit }}'
-      limit_ip_learn: '{{ (prefix + "limit_ip_learn_to_subnets") | value_getter(item, defaults, *paths) or omit }}'
-      mac_address: '{{ (prefix + "mac") | value_getter(item, defaults, *paths) or omit }}'
+      ip_learning: '{{ item[prefix + "ip_dataplane_learning"] | default(omit) }}'
+      limit_ip_learn: '{{ item[prefix + "limit_ip_learn_to_subnets"] | default(omit) }}'
+      mac_address: '{{ item[prefix + "mac"] | default(omit, true) }}'
       # virtual_mac
-      endpoint_move_detect: '{{ "garp" if (prefix + "ep_move_detection") | value_getter(item, defaults, *paths) else "default" }}'
-      enable_multicast: '{{ (prefix + "l3_multicast") | value_getter(item, defaults, *paths) or omit }}'
-      multi_dest: '{{ (prefix + "multi_destination_flooding") | value_getter(item, defaults, *paths) or omit }}'
-      enable_routing: '{{ (prefix + "unicast_routing") | value_getter(item, defaults, *paths) or omit }}'
-      l2_unknown_unicast: '{{ (prefix + "unknown_unicast") | value_getter(item, defaults, *paths) or omit }}'
-      l3_unknown_multicast: '{{ (prefix + "unknown_ipv4_multicast") | value_getter(item, defaults, *paths) or omit }}'
-      ipv6_l3_unknown_multicast: '{{ (prefix + "unknown_ipv6_multicast") | value_getter(item, defaults, *paths) or omit }}'
+      endpoint_move_detect: '{{ "garp" if item[prefix + "ep_move_detection"] else "default" }}'
+      enable_multicast: '{{ item[prefix + "l3_multicast"] | default(omit) }}'
+      multi_dest: '{{ item[prefix + "multi_destination_flooding"] | default(omit, true) }}'
+      enable_routing: '{{ item[prefix + "unicast_routing"] | default(omit) }}'
+      l2_unknown_unicast: '{{ item[prefix + "unknown_unicast"] | default(omit, true) }}'
+      l3_unknown_multicast: '{{ item[prefix + "unknown_ipv4_multicast"] | default(omit, true) }}'
+      ipv6_l3_unknown_multicast: '{{ item[prefix + "unknown_ipv6_multicast"] | default(omit, true) }}'
       # l3outs
       # dhcp_labels
       # igmp_interface_policy
-      igmp_snoop_policy: '{{ (prefix + "igmp_snooping_policy") | value_getter(item, defaults, *paths) or omit }}'
-    loop: '{{ apic_configuration | extractor(*paths) }}'
+      igmp_snoop_policy: '{{ item[prefix + "igmp_snooping_policy"] | default(omit, true) }}'
+    loop: '{{ present_extracted_data[path] }}'
+    when: path in present_extracted_data
 
   - name: Create Bridge Domains Subnets
     vars:
-      paths: ["apic", "tenants", "bridge_domains", "subnets"]
+      path: "apic/tenants/bridge_domains/subnets"
       prefix: "apic_tenants_bridge_domains_subnets_"
       scope_options: ["public", "private", "shared"]
       scope_names: ["{{ prefix }}public", "{{ prefix }}private", "{{ prefix }}shared"]
     aci_bd_subnet:
       <<: *aci_common
-      tenant: '{{ "apic_tenants_name" | value_getter(item, defaults, *paths) }}'
-      bd: '{{ "apic_tenants_bridge_domains_name" | value_getter(item, defaults, *paths) }}'
-      gateway: '{{ (prefix + "ip") | value_getter(item, defaults, *paths) | ip_cidr_extractor("ip") }}'
-      mask: '{{ (prefix + "ip") | value_getter(item, defaults, *paths) | ip_cidr_extractor("cidr") }}'
-      description: '{{ (prefix + "description") | value_getter(item, defaults, *paths) or omit }}'
-      preferred: '{{ (prefix + "primary_ip") | value_getter(item, defaults, *paths) or omit }}'
-      scope: '{{ item | list_assembler(scope_options, scope_names, defaults, *paths) or omit }}'
-      enable_vip: '{{ (prefix + "virtual") | value_getter(item, defaults, *paths) or omit }}'
-      subnet_control: '{{ "no_gw" if (prefix + "no_default_gateway") | value_getter(item, defaults, *paths) else "querier_ip" if (prefix + "igmp_querier") | value_getter(item, defaults, *paths) else "nd_ra" if (prefix + "nd_ra_prefix") | value_getter(item, defaults, *paths) else omit }}'
-    loop: '{{ apic_configuration | extractor(*paths) }}'
+      tenant: '{{ item["apic_tenants_name"] }}'
+      bd: '{{ item["apic_tenants_bridge_domains_name"] }}'
+      gateway: '{{ item[prefix + "ip"] | ip_cidr_extractor("ip") }}'
+      mask: '{{ item[prefix + "ip"] | ip_cidr_extractor("cidr") }}'
+      description: '{{ item[prefix + "description"] | default(omit, true) }}'
+      preferred: '{{ item[prefix + "primary_ip"] | default(omit) }}'
+      scope: '{{ item | list_assembler(scope_options, scope_names) | default(omit) }}'
+      enable_vip: '{{ item[prefix + "virtual"] | default(omit) }}'
+      subnet_control: '{{ "no_gw" if item[prefix + "no_default_gateway"] else "querier_ip" if item[prefix + "igmp_querier"] else "nd_ra" if item[prefix + "nd_ra_prefix"] else omit }}'
+    loop: '{{ present_extracted_data[path] }}'
+    when: path in present_extracted_data
 
   - name: Create Application Profiles
     vars:
-      paths: ["apic", "tenants", "application_profiles"]
+      path: "apic/tenants/application_profiles"
       prefix: "apic_tenants_application_profiles_"
     aci_ap:
       <<: *aci_common
-      tenant: '{{ "apic_tenants_name" | value_getter(item, defaults, *paths) }}'
-      ap: '{{ (prefix + "name") | value_getter(item, defaults, *paths) }}'
-      name_alias: '{{ (prefix + "alias") | value_getter(item, defaults, *paths) or omit }}'
-      description: '{{ (prefix + "description") | value_getter(item, defaults, *paths) or omit }}'
-    loop: '{{ apic_configuration | extractor(*paths) }}'
+      tenant: '{{ item["apic_tenants_name"] }}'
+      ap: '{{ item[prefix + "name"] }}'
+      name_alias: '{{ item[prefix + "alias"] | default(omit, true) }}'
+      description: '{{ item[prefix + "description"] | default(omit, true) }}'
+    loop: '{{ present_extracted_data[path] }}'
+    when: path in present_extracted_data
 
   - name: Create Endpoint Groups
     vars:
-      paths: ["apic", "tenants", "application_profiles", "endpoint_groups"]
+      path: "apic/tenants/application_profiles/endpoint_groups"
       prefix: "apic_tenants_application_profiles_endpoint_groups_"
     aci_epg:
       <<: *aci_common
-      tenant: '{{ "apic_tenants_name" | value_getter(item, defaults, *paths) }}'
-      ap: '{{ "apic_tenants_application_profiles_name" | value_getter(item, defaults, *paths) }}'
-      epg: '{{ (prefix + "name") | value_getter(item, defaults, *paths) }}'
-      name_alias: '{{ (prefix + "alias") | value_getter(item, defaults, *paths) or omit }}'
-      description: '{{ (prefix + "description") | value_getter(item, defaults, *paths) or omit }}'
-      bd: '{{ (prefix + "bridge_domain") | value_getter(item, defaults, *paths) or omit }}'
-      preferred_group: '{{ (prefix + "preferred_group") | value_getter(item, defaults, *paths) or omit }}'
-      intra_epg_isolation: '{{ (prefix + "intra_epg_isolation") | value_getter(item, defaults, *paths) or omit }}'
-      fwd_control: '{{ "proxy-arp" if (prefix + "proxy_arp") | value_getter(item, defaults, *paths) else omit }}'
-      custom_qos_policy: '{{ (prefix + "custom_qos_policy") | value_getter(item, defaults, *paths) or omit }}'
-      priority: '{{ (prefix + "qos_class") | value_getter(item, defaults, *paths) or omit }}'
+      tenant: '{{ item["apic_tenants_name"] }}'
+      ap: '{{ item["apic_tenants_application_profiles_name"] }}'
+      epg: '{{ item[prefix + "name"] }}'
+      name_alias: '{{ item[prefix + "alias"] | default(omit, true) }}'
+      description: '{{ item[prefix + "description"] | default(omit, true) }}'
+      bd: '{{ item[prefix + "bridge_domain"] | default(omit, true) }}'
+      preferred_group: '{{ item[prefix + "preferred_group"] | default(omit, true) }}'
+      intra_epg_isolation: '{{ item[prefix + "intra_epg_isolation"] | default(omit, true) }}'
+      fwd_control: '{{ "proxy-arp" if item[prefix + "proxy_arp"] | default(None) else omit }}'
+      custom_qos_policy: '{{ item[prefix + "custom_qos_policy"] | default(omit, true) }}'
+      priority: '{{ item[prefix + "qos_class"] | default(omit, true) }}'
       # flood_in_encap
       # vmware_vmm_domains
       # static_ports
@@ -145,34 +155,31 @@
       # trust_control_policy
       # l4l7_virtual_ips
       # l4l7_address_pools
-    loop: '{{ apic_configuration | extractor(*paths) }}'
-  
+    loop: '{{ present_extracted_data[path] }}'
+    when: path in present_extracted_data
+
   - name: Bind EPGs to Physical Domains
     vars:
-      paths: ["apic", "tenants", "application_profiles", "endpoint_groups", "physical_domains"]
+      path: "apic/tenants/application_profiles/endpoint_groups/physical_domains"
       prefix: "apic_tenants_application_profiles_endpoint_groups_"
     aci_epg_to_domain:
       <<: *aci_common
-      tenant: '{{ "apic_tenants_name" | value_getter(item.0, defaults, *paths) }}'
-      ap: '{{ "apic_tenants_application_profiles_name" | value_getter(item.0, defaults, *paths) }}'
-      epg: '{{ (prefix + "name") | value_getter(item.0, defaults, *paths) }}'
+      tenant: '{{ item[0]["apic_tenants_name"] }}'
+      ap: '{{ item[0]["apic_tenants_application_profiles_name"] }}'
+      epg: '{{ item[0][prefix + "name"] }}'
       domain: '{{ item.1 }}'
       domain_type: "phys"
-    loop: '{{ apic_configuration | extractor(*paths) | subelements(prefix + "physical_domains") }}'
-
-  - name: Set Static paths configuration
-    vars:
-      paths: ["apic", "tenants", "application_profiles", "endpoint_groups", "static_ports"]
-    set_fact:
-      static_paths: '{{ apic_configuration | extractor(*paths) }}'
+    loop: '{{ (present_extracted_data[path] if path in present_extracted_data else []) | subelements(prefix + "physical_domains") }}'
+    when: path in present_extracted_data
 
   - name: Bind Static paths to EPGs
     vars:
-      paths: ["apic", "tenants", "application_profiles", "endpoint_groups", "static_ports"]
+      path: "apic/tenants/application_profiles/endpoint_groups/static_ports"
     cisco.aci.aci_bulk_static_binding_to_epg:
       <<: *aci_common
       tenant: '{{ item.tenant }}'
       ap: '{{ item.ap }}'
       epg: '{{ item.epg }}'
       interface_configs: '{{ item.interface_configs }}'
-    loop: '{{ static_paths | static_ports_assembler(defaults, *paths) }}'
+    loop: '{{ present_extracted_data[path] | static_ports_assembler() }}'
+    when: path in present_extracted_data

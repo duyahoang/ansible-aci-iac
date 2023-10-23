@@ -3,14 +3,14 @@ from ansible.errors import AnsibleError
 import yaml
 import json
 
-def extractor(data, *paths):
+def extractor(data, defaults, path):
     """
     Traverse the data based on the given path and return scalar values along \
           the path.
 
     Args:
     - data (dict): The data to traverse.
-    - paths (tuple): Path to traverse.
+    - path (str): Path to traverse.
 
     Returns:
     - List[Dict]: A list of dictionaries containing scalar values along \
@@ -76,7 +76,17 @@ def extractor(data, *paths):
         return []
 
     # Begin extraction from the top-level data
-    return extract_values(data, paths, "")
+    paths = path.split('/')
+    outter_results = extract_values(data, paths, "")
+    defaults = extract_values(defaults, paths, "")
+    final_result = []
+    for entry in outter_results:
+        if defaults:
+            for default_key, default_value in defaults[0].items():
+                if default_key not in entry:
+                    entry[default_key] = default_value
+        final_result.append(entry)
+    return final_result
 
 
 def deep_merge_dicts(dict1, dict2):
@@ -109,29 +119,14 @@ def bool_converter(boolean):
     return boolean
 
 
-def value_getter(value_name, item, defaults_dict, *paths):
-    value = item.get(value_name, None)
-    # If value is None or doesn't exist, fetch the default
-    if value is not None:
-        return value
-    
-    results = extractor(defaults_dict, *paths)
-    if not results or value_name not in results[0]:
-        return None
-
-    return results[0][value_name]
-
-
-def list_assembler(item, options, names, defaults_dict, *paths):
+def list_assembler(item, options, names):
     results = []
-    defaults = extractor(defaults_dict, *paths)
     for index, data in enumerate(names):
         if data in item:
             if item[data]:
                 results.append(options[index])
-        elif results and data in defaults[0] and defaults[0][data]:
-            results.append(options[index])
     return results
+
 
 def ip_cidr_extractor(data, part):
     ip_address, _, cidr = data.partition('/')
@@ -144,18 +139,12 @@ def ip_cidr_extractor(data, part):
         raise ValueError("The 'part' argument must be either 'ip' or 'cidr'.")
 
 
-def static_ports_assembler(data, defaults_dict, *paths):
+def static_ports_assembler(data):
     result = []
     grouped_data = {}
     prefix = "apic_tenants_application_profiles_endpoint_groups_static_ports"
-    defaults = extractor(defaults_dict, *paths)
 
-    for entry in data:
-        if defaults:
-            for default_key, default_value in defaults[0].items():
-                if default_key not in entry:
-                    entry[default_key] = default_value
-        
+    for entry in data:        
         key = (entry['apic_tenants_name'], entry['apic_tenants_application_profiles_name'], entry['apic_tenants_application_profiles_endpoint_groups_name'])
         if key not in grouped_data:
             grouped_data[key] = {
@@ -210,24 +199,38 @@ def static_ports_assembler(data, defaults_dict, *paths):
     return result
 
 
+def list_of_dict_diff(list1, list2):
+    set1 = {json.dumps(d, sort_keys=True) for d in list1}
+    set2 = {json.dumps(d, sort_keys=True) for d in list2}
+    
+    diff = set2 - set1
 
-# with open('/Users/duyhoan/Documents/GitHub-Cisco/Small Scripts/ansible-aci-iac/vars/host_vars/apic1/apic_configuration.yaml', 'r') as file:
-#     content = file.read()
-with open('/Users/duyhoan/Documents/GitHub-Cisco/Small Scripts/ansible-aci-iac/roles/present_apic/defaults/defaults.yaml', 'r') as file:
-    content2 = file.read()
+    return [json.loads(s) for s in diff]
 
-# config1 = yaml.safe_load(content)
-default_data = yaml.safe_load(content2)
-default = default_data["defaults"]
-data = [{'apic_tenants_name': 'PROD', 'apic_tenants_application_profiles_name': 'PROD', 'apic_tenants_application_profiles_endpoint_groups_name': 'EPG_VLAN100', 'apic_tenants_application_profiles_endpoint_groups_bridge_domain': 'BD_VLAN100', 'apic_tenants_application_profiles_endpoint_groups_static_ports_node_id': 101, 'apic_tenants_application_profiles_endpoint_groups_static_ports_port': 1, 'apic_tenants_application_profiles_endpoint_groups_static_ports_vlan': 100}, {'apic_tenants_name': 'PROD', 'apic_tenants_application_profiles_name': 'PROD', 'apic_tenants_application_profiles_endpoint_groups_name': 'EPG_VLAN100', 'apic_tenants_application_profiles_endpoint_groups_bridge_domain': 'BD_VLAN100', 'apic_tenants_application_profiles_endpoint_groups_static_ports_node_id': 102, 'apic_tenants_application_profiles_endpoint_groups_static_ports_port': 1, 'apic_tenants_application_profiles_endpoint_groups_static_ports_vlan': 100}, {'apic_tenants_name': 'PROD', 'apic_tenants_application_profiles_name': 'PROD', 'apic_tenants_application_profiles_endpoint_groups_name': 'EPG_VLAN101', 'apic_tenants_application_profiles_endpoint_groups_bridge_domain': 'BD_VLAN101', 'apic_tenants_application_profiles_endpoint_groups_static_ports_node_id': 101, 'apic_tenants_application_profiles_endpoint_groups_static_ports_port': 1, 'apic_tenants_application_profiles_endpoint_groups_static_ports_vlan': 101}, {'apic_tenants_name': 'PROD', 'apic_tenants_application_profiles_name': 'PROD', 'apic_tenants_application_profiles_endpoint_groups_name': 'EPG_VLAN101', 'apic_tenants_application_profiles_endpoint_groups_bridge_domain': 'BD_VLAN101', 'apic_tenants_application_profiles_endpoint_groups_static_ports_node_id': 102, 'apic_tenants_application_profiles_endpoint_groups_static_ports_port': 1, 'apic_tenants_application_profiles_endpoint_groups_static_ports_vlan': 101}]
-out = static_ports_assembler(data, default, "apic", "tenants", "application_profiles", "endpoint_groups", "static_ports")
-print(json.dumps(out, indent=2))
 
-# scope_options = ["public", "private", "shared"]
-# scope_names = ["apic_tenants_bridge_domains_subnets_public", "apic_tenants_bridge_domains_subnets_private", "apic_tenants_bridge_domains_subnets_shared"]
+def present_extracted_data_assembler(previous_dict, current_dict):
+    results = {}
+    for key, value in current_dict.items():
+        if key in previous_dict:
+            dict_diff = list_of_dict_diff(previous_dict[key], current_dict[key])
+            if dict_diff:
+                results[key]= dict_diff
+        else:
+            results[key] = value
+    return results
 
-# print(list_assembler({"apic_tenants_bridge_domains_subnets_private": False, "apic_tenants_bridge_domains_subnets_public": True, "apic_tenants_bridge_domains_subnets_shared": True}, scope_options, scope_names, default,"apic","tenants","bridge_domains","subnets"))
-# print(extractor(config1, "apic", "tenants", "application_profiles", "endpoint_groups", "static_ports"))
+
+def absent_extracted_data_assembler(previous_dict, current_dict):
+    results = {}
+    for key, value in previous_dict.items():
+        if key in current_dict:
+            dict_diff = list_of_dict_diff(current_dict[key],previous_dict[key])
+            if dict_diff:
+                results[key]= dict_diff
+        else:
+            results[key] = value
+    return results
+
 
 class FilterModule(object):
     """Ansible core jinja2 filters"""
@@ -237,8 +240,9 @@ class FilterModule(object):
             "extractor": extractor,
             "deep_merge_dicts": deep_merge_dicts,
             "bool_converter": bool_converter,
-            "value_getter": value_getter,
             "list_assembler": list_assembler,
             "ip_cidr_extractor": ip_cidr_extractor,
-            "static_ports_assembler": static_ports_assembler
+            "static_ports_assembler": static_ports_assembler,
+            "present_extracted_data_assembler": present_extracted_data_assembler,
+            "absent_extracted_data_assembler": absent_extracted_data_assembler
         }
