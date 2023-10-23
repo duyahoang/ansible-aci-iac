@@ -9,4 +9,6 @@ all:
           apic_password: <<apic_password>>
           apic_use_proxy: no
           apic_validate_certs: no
+          annotation: <<annotation>>
           data_directory: <<data_directory_contain_YAML_files>>
+          previous_data_directory: <<previous_data_directory_contain_YAML_files>>
