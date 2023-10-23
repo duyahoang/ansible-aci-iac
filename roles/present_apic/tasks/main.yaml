@@ -33,7 +33,7 @@
     vars:
       path: "apic/tenants"
       prefix: "apic_tenants_"
-    aci_tenant:
+    cisco.aci.aci_tenant:
       <<: *aci_common
       tenant: '{{ item[prefix + "name"] }}'
       description: '{{ item[prefix + "description"] | default(omit, true) }}'
@@ -45,7 +45,7 @@
     vars:
       path: "apic/tenants/vrfs"
       prefix: "apic_tenants_vrfs_"
-    aci_vrf:
+    cisco.aci.aci_vrf:
       <<: *aci_common
       tenant: '{{ item["apic_tenants_name"] }}'
       vrf: '{{ item[prefix + "name"] }}'
@@ -68,7 +68,7 @@
     vars:
       path: "apic/tenants/bridge_domains"
       prefix: "apic_tenants_bridge_domains_"
-    aci_bd:
+    cisco.aci.aci_bd:
       <<: *aci_common
       tenant: '{{ item["apic_tenants_name"] }}'
       vrf: '{{ item[prefix + "vrf"] }}'
@@ -101,7 +101,7 @@
       prefix: "apic_tenants_bridge_domains_subnets_"
       scope_options: ["public", "private", "shared"]
       scope_names: ["{{ prefix }}public", "{{ prefix }}private", "{{ prefix }}shared"]
-    aci_bd_subnet:
+    cisco.aci.aci_bd_subnet:
       <<: *aci_common
       tenant: '{{ item["apic_tenants_name"] }}'
       bd: '{{ item["apic_tenants_bridge_domains_name"] }}'
@@ -119,7 +119,7 @@
     vars:
       path: "apic/tenants/application_profiles"
       prefix: "apic_tenants_application_profiles_"
-    aci_ap:
+    cisco.aci.aci_ap:
       <<: *aci_common
       tenant: '{{ item["apic_tenants_name"] }}'
       ap: '{{ item[prefix + "name"] }}'
@@ -132,7 +132,7 @@
     vars:
       path: "apic/tenants/application_profiles/endpoint_groups"
       prefix: "apic_tenants_application_profiles_endpoint_groups_"
-    aci_epg:
+    cisco.aci.aci_epg:
       <<: *aci_common
       tenant: '{{ item["apic_tenants_name"] }}'
       ap: '{{ item["apic_tenants_application_profiles_name"] }}'
@@ -162,7 +162,7 @@
     vars:
       path: "apic/tenants/application_profiles/endpoint_groups/physical_domains"
       prefix: "apic_tenants_application_profiles_endpoint_groups_"
-    aci_epg_to_domain:
+    cisco.aci.aci_epg_to_domain:
       <<: *aci_common
       tenant: '{{ item[0]["apic_tenants_name"] }}'
       ap: '{{ item[0]["apic_tenants_application_profiles_name"] }}'
