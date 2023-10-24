@@ -80,7 +80,7 @@ Utilizing password-based authentication frequently or in rapid succession may le
 
 ## Example
 
-The `example-playbook-execution,txt` file show the example of execute playbook and its output.
+The `example-playbook-execution.md` file show the example of execute playbook and its output.
 
 ## Author
 Duy Hoang
