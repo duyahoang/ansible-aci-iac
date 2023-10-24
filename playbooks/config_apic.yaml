@@ -2,4 +2,6 @@
   hosts: fabric1_apic1
   gather_facts: no
   roles:
+  # - role: present_apic_access_policies
+  # - role: present_apic_tenants
   - role: present_apic

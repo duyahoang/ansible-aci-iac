@@ -1,15 +1,5 @@
+---
 - name: Process data
-  vars:
-    paths_models:
-      - "apic/tenants"
-      - "apic/tenants/vrfs"
-      - "apic/tenants/bridge_domains"
-      - "apic/tenants/bridge_domains/subnets"
-      - "apic/tenants/application_profiles"
-      - "apic/tenants/application_profiles/endpoint_groups"
-      - "apic/tenants/application_profiles/endpoint_groups/physical_domains"
-      - "apic/tenants/application_profiles/endpoint_groups/static_ports"
-
   block:
 
   - name: Read all YAML files in the data_directory into apic_configuration

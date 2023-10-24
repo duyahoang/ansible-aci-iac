@@ -1,5 +1,231 @@
 defaults:
   apic:
+    access_policies:
+      vlan_pools:
+        allocation: static
+        ranges:
+          allocation: inherit
+          role: external
+      physical_domains:
+        allocation: static
+      routed_domains:
+        allocation: static
+      aaeps:
+        infra_vlan: false
+        endpoint_groups:
+          mode: regular
+          deployment_immediacy: lazy
+      switch_policies:
+        vpc_policies:
+          peer_dead_interval: 200
+        forwarding_scale_policies:
+          profile: dual-stack
+        mst_policies:
+        link_level_policies:
+          speed: inherit
+          auto: true
+          fec_mode: inherit
+        port_channel_policies:
+          min_links: 1
+          max_links: 16
+          suspend_individual: true
+          graceful_convergence: true
+          fast_select_standby: true
+          load_defer: false
+          symmetric_hash: false
+        port_channel_member_policies:
+          priority: 32768
+          rate: normal
+        l2_policies:
+          vlan_scope: global
+          qinq: disabled
+          reflective_relay: false
+        mcp_policies:
+        storm_control_policies:
+          broadcast_burst_pps: unspecified
+          broadcast_pps: unspecified
+          broadcast_burst_rate: "100.000000"
+          broadcast_rate: "100.000000"
+          multicast_burst_pps: unspecified
+          multicast_pps: unspecified
+          multicast_burst_rate: "100.000000"
+          multicast_rate: "100.000000"
+          unknown_unicast_burst_pps: unspecified
+          unknown_unicast_pps: unspecified
+          unknown_unicast_burst_rate: "100.000000"
+          unknown_unicast_rate: "100.000000"
+          action: drop
+        spanning_tree_policies:
+          bpdu_guard: false
+          bpdu_filter: false
+      leaf_interface_policy_groups:
+        map: none
+      spine_interface_policy_groups:
+      spine_interface_profiles:
+        selectors:
+          port_blocks:
+            from_module: 1
+      leaf_interface_profiles:
+        selectors:
+          port_blocks:
+            from_module: 1
+          sub_port_blocks:
+            from_module: 1
+      fex_interface_profiles:
+        selectors:
+          port_blocks:
+            from_module: 1
+      mcp:
+        admin_state: true
+        per_vlan: true
+        action: true
+        key: cisco
+        loop_detection: 3
+        initial_delay: 180
+        frequency_sec: 2
+        frequency_msec: 0
+      qos:
+        preserve_cos: false
+        qos_classes:
+          - level: 1
+            admin_state: true
+            mtu: 9216
+            scheduling: wrr
+            bandwidth_percent: 20
+            congestion_algorithm: tail-drop
+            minimum_buffer: 0
+            pfc_state: false
+            no_drop_cos: ""
+            pfc_scope: tor
+            ecn: false
+            forward_non_ecn: false
+            wred_max_threshold: 100
+            wred_min_threshold: 0
+            wred_probability: 0
+            weight: 0
+          - level: 2
+            admin_state: true
+            mtu: 9216
+            scheduling: wrr
+            bandwidth_percent: 20
+            congestion_algorithm: tail-drop
+            minimum_buffer: 0
+            pfc_state: false
+            no_drop_cos: ""
+            pfc_scope: tor
+            ecn: false
+            forward_non_ecn: false
+            wred_max_threshold: 100
+            wred_min_threshold: 0
+            wred_probability: 0
+            weight: 0
+          - level: 3
+            admin_state: true
+            mtu: 9216
+            scheduling: wrr
+            bandwidth_percent: 20
+            congestion_algorithm: tail-drop
+            minimum_buffer: 0
+            pfc_state: false
+            no_drop_cos: ""
+            pfc_scope: tor
+            ecn: false
+            forward_non_ecn: false
+            wred_max_threshold: 100
+            wred_min_threshold: 0
+            wred_probability: 0
+            weight: 0
+          - level: 4
+            admin_state: true
+            mtu: 9216
+            scheduling: wrr
+            bandwidth_percent: 0
+            congestion_algorithm: tail-drop
+            minimum_buffer: 0
+            pfc_state: false
+            no_drop_cos: ""
+            pfc_scope: tor
+            ecn: false
+            forward_non_ecn: false
+            wred_max_threshold: 100
+            wred_min_threshold: 0
+            wred_probability: 0
+            weight: 0
+          - level: 5
+            admin_state: true
+            mtu: 9216
+            scheduling: wrr
+            bandwidth_percent: 0
+            congestion_algorithm: tail-drop
+            minimum_buffer: 0
+            pfc_state: false
+            no_drop_cos: ""
+            pfc_scope: tor
+            ecn: false
+            forward_non_ecn: false
+            wred_max_threshold: 100
+            wred_min_threshold: 0
+            wred_probability: 0
+            weight: 0
+          - level: 6
+            admin_state: true
+            mtu: 9216
+            scheduling: wrr
+            bandwidth_percent: 0
+            congestion_algorithm: tail-drop
+            minimum_buffer: 0
+            pfc_state: false
+            no_drop_cos: ""
+            pfc_scope: tor
+            ecn: false
+            forward_non_ecn: false
+            wred_max_threshold: 100
+            wred_min_threshold: 0
+            wred_probability: 0
+            weight: 0
+      span:
+        destination_groups:
+  
+          mtu: 1518
+          module: 1
+          dscp: unspecified
+          flow_id: 1
+          ttl: 64
+          version: 2
+          enforce_version: false
+        source_groups:
+  
+          admin_state: true
+          sources:
+    
+            direction: "both"
+            span_drop: false
+            access_paths:
+              module: 1
+        filter_groups:
+  
+          entries:
+    
+            destination_from_port: unspecified
+            source_from_port: unspecified
+            ip_protocol: unspecified
+      vspan:
+        destination_groups:
+  
+          destinations:
+    
+            mtu: 1518
+            flow_id: 1
+            ttl: 64
+            dscp: unspecified
+        sessions:
+  
+          admin_state: true
+          sources:
+    
+            direction: both
+            access_paths:
+              module: 1
     tenants:
       vrfs:
         data_plane_learning: true

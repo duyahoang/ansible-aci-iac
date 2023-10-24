@@ -1,0 +1,202 @@
+- name: Run Ansible ACI modules against Tenants data model APIC Configuration with State Present
+
+  # Reusable aci_common anchor
+  vars:
+    aci_common: &aci_common
+    # aci_common:
+      host: '{{ apic_host }}'
+      username: '{{ apic_username }}'
+      password: '{{ apic_password | default(omit) }}'
+      use_proxy: '{{ apic_use_proxy | default(omit) }}'
+      validate_certs: '{{ apic_validate_certs | default(omit) }}'
+      use_ssl: true
+      annotation: '{{ annotation | default("orchestrator:ansible") }}'
+      state: 'present'
+    paths_models:
+      - "apic/tenants"
+      - "apic/tenants/vrfs"
+      - "apic/tenants/bridge_domains"
+      - "apic/tenants/bridge_domains/subnets"
+      - "apic/tenants/application_profiles"
+      - "apic/tenants/application_profiles/endpoint_groups"
+      - "apic/tenants/application_profiles/endpoint_groups/physical_domains"
+      - "apic/tenants/application_profiles/endpoint_groups/static_ports"
+
+  delegate_to: localhost
+
+  block:
+
+  - name: Inlcude process_data role
+    include_role:
+      name: process_data
+      
+  # Serve as example in the future if want to break main task role to multiple task files 
+  # because Merge keys and node anchors cannot be used across files
+  # - name: Create Tenants
+  #   vars:
+  #     path: "apic/tenants"
+  #     prefix: "apic_tenants_"
+  #   cisco.aci.aci_tenant:
+  #     # Merge aci_common with task-specific parameters
+  #     "{{ aci_common | combine({
+  #         'tenant': item[prefix + 'name'],
+  #         'description': item[prefix + 'description'] | default(omit, true),
+  #         'name_alias': item[prefix + 'alias'] | default(omit, true)
+  #       }) }}"
+  #   loop: '{{ present_extracted_data[path] }}'
+  #   when: path in present_extracted_data
+  
+  - name: Create/modify Tenants
+    vars:
+      path: "apic/tenants"
+      prefix: "apic_tenants_"
+    cisco.aci.aci_tenant:
+      <<: *aci_common
+      tenant: '{{ item[prefix + "name"] }}'
+      description: '{{ item[prefix + "description"] | default(omit, true) }}'
+      name_alias: '{{ item[prefix + "alias"] | default(omit, true) }}'
+    loop: '{{ present_extracted_data[path] }}'
+    when: path in present_extracted_data
+
+  - name: Create/Modify VRFs
+    vars:
+      path: "apic/tenants/vrfs"
+      prefix: "apic_tenants_vrfs_"
+    cisco.aci.aci_vrf:
+      <<: *aci_common
+      tenant: '{{ item["apic_tenants_name"] }}'
+      vrf: '{{ item[prefix + "name"] }}'
+      description: '{{ item[prefix + "description"] | default(omit, true) }}'
+      name_alias: '{{ item[prefix + "alias"] | default(omit, true) }}'
+      ip_data_plane_learning: '{{ item[prefix + "data_plane_learning"] | bool_converter() | default(omit, true) }}'
+      policy_control_direction: '{{ item[prefix + "enforcement_direction"] | default(omit, true) }}'
+      policy_control_preference: '{{ item[prefix + "enforcement_preference"] | default(omit, true) }}'
+      preferred_group: '{{ item[prefix + "preferred_group"] | bool_converter() | default(omit, true) }}'
+      # '{{ item.apic_tenants_vrfs_leaked_internal_prefixes }}'
+      # '{{ item.apic_tenants_vrfs_leaked_external_prefixes }}'
+      # '{{ item.apic_tenants_vrfs_contracts }}'
+      # '{{ item.apic_tenants_vrfs_bgp }}'
+      # '{{ item.apic_tenants_vrfs_dns_labels }}'
+      # '{{ item.apic_tenants_vrfs_pim }}'
+    loop: '{{ present_extracted_data[path] }}'
+    when: path in present_extracted_data
+
+  - name: Create/Modify Bridge Domains
+    vars:
+      path: "apic/tenants/bridge_domains"
+      prefix: "apic_tenants_bridge_domains_"
+    cisco.aci.aci_bd:
+      <<: *aci_common
+      tenant: '{{ item["apic_tenants_name"] }}'
+      vrf: '{{ item[prefix + "vrf"] }}'
+      bd: '{{ item[prefix + "name"] }}'
+      name_alias: '{{ item[prefix + "alias"] | default(omit, true) }}'
+      description: '{{ item[prefix + "description"] | default(omit, true) }}'
+      arp_flooding: '{{ item[prefix + "arp_flooding"] | default(omit) }}'
+      # advertise_host_routes
+      ip_learning: '{{ item[prefix + "ip_dataplane_learning"] | default(omit) }}'
+      limit_ip_learn: '{{ item[prefix + "limit_ip_learn_to_subnets"] | default(omit) }}'
+      mac_address: '{{ item[prefix + "mac"] | default(omit, true) }}'
+      # virtual_mac
+      endpoint_move_detect: '{{ "garp" if item[prefix + "ep_move_detection"] else "default" }}'
+      enable_multicast: '{{ item[prefix + "l3_multicast"] | default(omit) }}'
+      multi_dest: '{{ item[prefix + "multi_destination_flooding"] | default(omit, true) }}'
+      enable_routing: '{{ item[prefix + "unicast_routing"] | default(omit) }}'
+      l2_unknown_unicast: '{{ item[prefix + "unknown_unicast"] | default(omit, true) }}'
+      l3_unknown_multicast: '{{ item[prefix + "unknown_ipv4_multicast"] | default(omit, true) }}'
+      ipv6_l3_unknown_multicast: '{{ item[prefix + "unknown_ipv6_multicast"] | default(omit, true) }}'
+      # l3outs
+      # dhcp_labels
+      # igmp_interface_policy
+      igmp_snoop_policy: '{{ item[prefix + "igmp_snooping_policy"] | default(omit, true) }}'
+    loop: '{{ present_extracted_data[path] }}'
+    when: path in present_extracted_data
+
+  - name: Create/Modify Bridge Domains Subnets
+    vars:
+      path: "apic/tenants/bridge_domains/subnets"
+      prefix: "apic_tenants_bridge_domains_subnets_"
+      scope_options: ["public", "private", "shared"]
+      scope_names: ["{{ prefix }}public", "{{ prefix }}private", "{{ prefix }}shared"]
+    cisco.aci.aci_bd_subnet:
+      <<: *aci_common
+      tenant: '{{ item["apic_tenants_name"] }}'
+      bd: '{{ item["apic_tenants_bridge_domains_name"] }}'
+      gateway: '{{ item[prefix + "ip"] | ip_cidr_extractor("ip") }}'
+      mask: '{{ item[prefix + "ip"] | ip_cidr_extractor("cidr") }}'
+      description: '{{ item[prefix + "description"] | default(omit, true) }}'
+      preferred: '{{ item[prefix + "primary_ip"] | default(omit) }}'
+      scope: '{{ item | list_assembler(scope_options, scope_names) | default(omit) }}'
+      enable_vip: '{{ item[prefix + "virtual"] | default(omit) }}'
+      subnet_control: '{{ "no_gw" if item[prefix + "no_default_gateway"] else "querier_ip" if item[prefix + "igmp_querier"] else "nd_ra" if item[prefix + "nd_ra_prefix"] else omit }}'
+    loop: '{{ present_extracted_data[path] }}'
+    when: path in present_extracted_data
+
+  - name: Create/Modify Application Profiles
+    vars:
+      path: "apic/tenants/application_profiles"
+      prefix: "apic_tenants_application_profiles_"
+    cisco.aci.aci_ap:
+      <<: *aci_common
+      tenant: '{{ item["apic_tenants_name"] }}'
+      ap: '{{ item[prefix + "name"] }}'
+      name_alias: '{{ item[prefix + "alias"] | default(omit, true) }}'
+      description: '{{ item[prefix + "description"] | default(omit, true) }}'
+    loop: '{{ present_extracted_data[path] }}'
+    when: path in present_extracted_data
+
+  - name: Create/Modify Endpoint Groups
+    vars:
+      path: "apic/tenants/application_profiles/endpoint_groups"
+      prefix: "apic_tenants_application_profiles_endpoint_groups_"
+    cisco.aci.aci_epg:
+      <<: *aci_common
+      tenant: '{{ item["apic_tenants_name"] }}'
+      ap: '{{ item["apic_tenants_application_profiles_name"] }}'
+      epg: '{{ item[prefix + "name"] }}'
+      name_alias: '{{ item[prefix + "alias"] | default(omit, true) }}'
+      description: '{{ item[prefix + "description"] | default(omit, true) }}'
+      bd: '{{ item[prefix + "bridge_domain"] | default(omit, true) }}'
+      preferred_group: '{{ item[prefix + "preferred_group"] | default(omit, true) }}'
+      intra_epg_isolation: '{{ item[prefix + "intra_epg_isolation"] | default(omit, true) }}'
+      fwd_control: '{{ "proxy-arp" if item[prefix + "proxy_arp"] | default(None) else omit }}'
+      custom_qos_policy: '{{ item[prefix + "custom_qos_policy"] | default(omit, true) }}'
+      priority: '{{ item[prefix + "qos_class"] | default(omit, true) }}'
+      # flood_in_encap
+      # vmware_vmm_domains
+      # static_ports
+      # static_endpoints
+      # subnets
+      # contracts
+      # tags
+      # trust_control_policy
+      # l4l7_virtual_ips
+      # l4l7_address_pools
+    loop: '{{ present_extracted_data[path] }}'
+    when: path in present_extracted_data
+
+  - name: Bind EPGs to Physical Domains
+    vars:
+      path: "apic/tenants/application_profiles/endpoint_groups/physical_domains"
+      prefix: "apic_tenants_application_profiles_endpoint_groups_"
+    cisco.aci.aci_epg_to_domain:
+      <<: *aci_common
+      tenant: '{{ item[0]["apic_tenants_name"] }}'
+      ap: '{{ item[0]["apic_tenants_application_profiles_name"] }}'
+      epg: '{{ item[0][prefix + "name"] }}'
+      domain: '{{ item[1] }}'
+      domain_type: "phys"
+    loop: '{{ (present_extracted_data[path] if path in present_extracted_data else []) | subelements(prefix + "physical_domains") }}'
+    when: path in present_extracted_data
+
+  - name: Bind Static paths to EPGs
+    vars:
+      path: "apic/tenants/application_profiles/endpoint_groups/static_ports"
+    cisco.aci.aci_bulk_static_binding_to_epg:
+      <<: *aci_common
+      tenant: '{{ item.tenant }}'
+      ap: '{{ item.ap }}'
+      epg: '{{ item.epg }}'
+      interface_configs: '{{ item.interface_configs }}'
+    loop: '{{ present_extracted_data[path] | static_ports_assembler() }}'
+    when: path in present_extracted_data

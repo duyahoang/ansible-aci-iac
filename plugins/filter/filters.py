@@ -232,6 +232,15 @@ def absent_extracted_data_assembler(previous_dict, current_dict):
     return results
 
 
+def find_value(extracted_data, path, identified_key, identified_value, key_to_find):
+    if path in extracted_data:
+       for item in extracted_data[path]:
+           if identified_key in item and item[identified_key] == identified_value:
+               if key_to_find in item:
+                   return item[key_to_find]
+    return None
+
+
 class FilterModule(object):
     """Ansible core jinja2 filters"""
 
@@ -244,5 +253,6 @@ class FilterModule(object):
             "ip_cidr_extractor": ip_cidr_extractor,
             "static_ports_assembler": static_ports_assembler,
             "present_extracted_data_assembler": present_extracted_data_assembler,
-            "absent_extracted_data_assembler": absent_extracted_data_assembler
+            "absent_extracted_data_assembler": absent_extracted_data_assembler,
+            "find_value": find_value
         }

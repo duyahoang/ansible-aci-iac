@@ -1,0 +1,136 @@
+---
+apic:
+  access_policies:
+    mcp:
+      action: true
+      admin_state: true
+      per_vlan: true
+      key: cisco
+    leaf_switch_policy_groups:
+      - name: all-leaves
+
+    # leaf_interface_profile_name: "leaf\\g<id>"
+    leaf_interface_profiles:
+      - name: leaf101
+        selectors:
+          - name: ETH1-15
+            policy_group: vpc-101-102-15
+            port_blocks:
+              - name: 1-15
+                description: port 15
+                from_port: 15
+
+    interface_policies:
+      l2_policies:
+        - name: port-local
+          vlan_scope: portlocal
+      cdp_policies:
+        - name: cdp-enabled
+          admin_state: true
+      lldp_policies:
+        - name: lldp-enabled
+          admin_tx_state: true
+          admin_rx_state: true
+      port_channel_policies:
+        - name: pc-lacp-active
+          mode: active
+      mcp_policies:
+        - name: mcp-enabled
+          admin_state: true
+      link_level_policies:
+        - name: link-pol-1G
+          speed: 1G
+
+    leaf_interface_policy_groups:
+      - name: default-access
+        type: access
+        cdp_policy: cdp-enabled
+        lldp_policy: lldp-enabled
+        mcp_policy: mcp-enabled
+        aaep: default
+
+      - name: default-l3-int
+        type: access
+        cdp_policy: cdp-enabled
+        lldp_policy: lldp-enabled
+        aaep: default-l3-int
+
+      - name: vpc-101-102-15
+        type: vpc
+        cdp_policy: cdp-enabled
+        lldp_policy: lldp-enabled
+        aaep: default
+        port_channel_policy: pc-lacp-active
+
+      - name: vpc-101-102-16
+        type: vpc
+        cdp_policy: cdp-enabled
+        lldp_policy: lldp-enabled
+        aaep: default
+        port_channel_policy: pc-lacp-active
+
+      - name: vpc-101-102-18
+        type: vpc
+        cdp_policy: cdp-enabled
+        lldp_policy: lldp-enabled
+        aaep: default
+        port_channel_policy: pc-lacp-active
+
+      - name: vpc-101-102-l3out-212
+        type: vpc
+        cdp_policy: cdp-enabled
+        lldp_policy: lldp-enabled
+        aaep: default
+        port_channel_policy: pc-lacp-active
+
+    aaeps:
+      - name: default-l3-int
+        routed_domains:
+          - l3dom
+      - name: default
+        physical_domains:
+          - phys
+      - name: default-nh1-mappings
+        physical_domains:
+          - phys-nh1-mappings
+        endpoint_groups:
+          - tenant: nh1
+            application_profile: default
+            endpoint_group: epg-201
+            vlan: 201
+          - tenant: nh1
+            application_profile: default
+            endpoint_group: epg-202
+            vlan: 202
+          - tenant: nh1
+            application_profile: default
+            endpoint_group: epg-203
+            vlan: 203
+          - tenant: nh1
+            application_profile: default
+            endpoint_group: epg-204
+            vlan: 204
+        routed_domains:
+          - l3dom
+
+    vlan_pools:
+      - name: static
+        allocation: static
+        ranges:
+          - from: 201
+            to: 299
+      - name: dynamic
+        allocation: dynamic
+        ranges:
+          - from: 1000
+            to: 1099
+
+    physical_domains:
+      - name: phys
+        vlan_pool: static
+      - name: phys-nh1-mappings
+        vlan_pool: static
+
+    routed_domains:
+      - name: l3dom
+        vlan_pool: static
