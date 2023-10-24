@@ -2,7 +2,23 @@
 
 An Infrastructure as Code (IaC) solution to automate the deployment and configuration of Cisco ACI using [Ansible ACI collection](https://galaxy.ansible.com/ui/repo/published/cisco/aci/).
 The ACI data model is based on the official [Cisco ACI Data Model](https://developer.cisco.com/docs/nexus-as-code/#!data-model)
+
+An Ansible Infrastructure as Code (IaC) solution is designed to automate Cisco ACI (Application Centric Infrastructure) deployment configurations using data models and custom Jinja2 filters. The solution leverages native [Cisco ACI Ansible modules](https://galaxy.ansible.com/ui/repo/published/cisco/aci/) to push configurations to the ACI fabric, ensuring compatibility and support with Cisco's offerings. By abstracting configurations into central structured data models, the solution enhances clarity, manageability, and ensures consistency across multiple ACI deployments. The ACI data model is based on the official [Cisco ACI Data Model](https://developer.cisco.com/docs/nexus-as-code/#!data-model)
  
+## Features
+
+- **Data-Driven Design**: Utilizes YAML-based data models to clearly and concisely represent complex ACI configurations.
+- **Native Cisco ACI Support**: Uses native Cisco ACI Ansible modules, thereby supporting union features between Cisco ACI Ansible modules and ACI Data Model offers. The solution also supports `--check` mode as the Cisco ACI Ansible modules support it.
+- **Modular Design**: Organized into extendable roles and tasks, allowing for focused configurations
+  -  Roles: `present_apic_tenants` and `present_apic_access_policies`.
+  -  Roles are still in development to completely and fully support the ACI Data Model. At this moment the solution is to serve as a beta testing version.
+- **Custom Filters**: A suite of custom Jinja2 filters to transform, extract, and process the data models for various use cases.
+- **Scalability**: Designed to manage configurations for any size of ACI environments, from small setups to large enterprise deployments.
+- **Idempotency**: Guarantees consistent configurations across runs, avoiding unnecessary changes if the desired state is already achieved.
+- **Differential Analysis**: Identifies and acts upon differences between data in `previous_data_directory` and `data_directory`. If `previous_data_directory` is provided in `vars/hosts.yaml`, the solution will only run ACI modules against the different configurations.
+- **Defaults Inclusion**: Integrates default values from `defaults.yaml` into the data configurations, ensuring a base configuration state.
+- **Error Handling and Logging**: Comprehensive error handling with detailed logs maintained in `ansible.log`.
+
 ## Requirements
 
 - **Ansible-Core**: This solution is built on `ansible-core`. Follow the latest recommended `ansible-core` version from the official [Ansible ACI collection](https://galaxy.ansible.com/ui/repo/published/cisco/aci/) website.
@@ -36,86 +52,31 @@ The ACI data model is based on the official [Cisco ACI Data Model](https://devel
      cd ansible-aci-iac
      ```
 
-## Features
-
-- **Modular Design**: Easily extendable roles and tasks to fit specific requirements.
-  - `present_apic` role now only supports tenants, vrfs, and bridge domains, but can be easily extended using native Ansible ACI modules.
-  
-- **Custom Filters**: Includes custom filters like `extractor` for enhanced data parsing and manipulation.
-  
-- **Scalability**: Designed to manage configurations for any size of ACI environments, from small setups to large enterprise deployments.
-  
-- **Idempotent**: Ensures desired state configuration, making repeated runs safe.
-
 ## Usage
 
-1. **Configure Environment Variables**: Set up necessary variables like APIC credentials in the `group_vars` or `host_vars` directories.
+1. **Configure Environment Variables**: Go to `vars/hosts.yaml` and update with your ACI environment details, including login credentials and common parameters for Cisco ACI modules. If `previous_data_directory` is provided, it will trigger the comparison and only run ACI modules against the different objects.
 
-2. **Update Configuration**: Modify `vars/host_vars/apic1/apic_configuration.yaml` with your specific ACI configurations.
+2. **Data Models**: Populate the data models in the `data` directory with your desired ACI configurations. This is where you define your ACI fabric's desired state. Make sure to include the path to data configuration in `vars/hosts.yaml` with the parameter `data_directory`. 
 
-3. **Run Playbook**: Deploy configurations to your ACI environment:
+3. **Playbook's Hosts**: Update the `hosts` in the `config_apic.yaml` playbook to reflect the fabric you want to run.
+ 
+5. **Deploy configurations**: Navigate to the root directory of the solution and execute the `config_apic.yaml` playbook:
+   With `check` mode
+   ```bash
+   ansible-playbook playbooks/config_apic.yaml --check --verbose
+   ```
+   Run playbook
    ```bash
    ansible-playbook playbooks/config_apic.yaml
    ```
 
-## Example
+## Limitations
 
-Given a simple configuration in `vars/host_vars/apic1/apic_configuration.yaml`:
+- Password-based authentication requires a separate login request and an open session for each module execution. More on the official [Cisco ACI Ansible Guide](https://docs.ansible.com/ansible/latest/scenario_guides/guide_aci.html#password-based-authentication).
 
-```yaml
-apic:
-  tenants:
-    - name: PROD
-      vrfs:
-        - name: PROD
-```
+## Warning
 
-Run the playbook:
-
-```bash
-ansible-playbook playbooks/config_apic.yaml
-```
-
-Output:
-```bash
-PLAY [Deploy APIC configuration] ****************************************************************************************************************************************************************************************************************************************************************************
-
-TASK [present_apic : Create Tenants] ************************************************************************************************************************************************************************************************************************************************************************
-changed: [apic1 -> localhost] => (item={'apic_tenants_name': 'PROD'}) => changed=true 
-  ansible_loop_var: item
-  current: []
-  item:
-    apic_tenants_name: PROD
-  mo:
-    fvTenant:
-      attributes:
-        annotation: orchestrator:ansible
-        dn: uni/tn-PROD
-        name: PROD
-
-TASK [present_apic : Create VRFs] ***************************************************************************************************************************************************************************************************************************************************************************
-changed: [apic1 -> localhost] => (item={'apic_tenants_name': 'PROD', 'apic_tenants_vrfs_name': 'PROD'}) => changed=true 
-  ansible_loop_var: item
-  current: []
-  item:
-    apic_tenants_name: PROD
-    apic_tenants_vrfs_name: PROD
-  mo:
-    fvCtx:
-      attributes:
-        annotation: orchestrator:ansible
-        dn: uni/tn-PROD/ctx-PROD
-        name: PROD
-
-TASK [present_apic : Create Bridge Domains] *****************************************************************************************************************************************************************************************************************************************************************
-skipping: [apic1] => changed=false 
-  skipped_reason: No items in the list
-
-PLAY RECAP **************************************************************************************************************************************************************************************************************************************************************************************************
-apic1                      : ok=2    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
-```
-
-This will ensure that the tenant named "PROD" with a VRF also named "PROD" is present in the ACI environment.
+Utilizing password-based authentication frequently or in rapid succession may lead to triggering ACI's anti-DoS measures. This can result in session throttling and cause HTTP 503 errors and login failures. It is advisable to use this method judiciously and be aware of the potential repercussions. More on the official [Cisco ACI Ansible Guide](https://docs.ansible.com/ansible/latest/scenario_guides/guide_aci.html#password-based-authentication).
 
 ## Author
 Duy Hoang
