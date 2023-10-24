@@ -234,17 +234,6 @@
     loop: '{{ present_extracted_data[path] }}'
     when: path in present_extracted_data
 
-  - name: debug
-    vars:
-      path: "apic/access_policies/leaf_interface_profiles/selectors"
-      prefix: "apic_access_policies_leaf_interface_profiles_selectors_"  
-      int_type: '{{ (present_extracted_data | find_value("apic/access_policies/leaf_interface_policy_groups","apic_access_policies_leaf_interface_policy_groups_name",item[prefix + "policy_group"],"apic_access_policies_leaf_interface_policy_groups_type")) if (prefix + "policy_group") in item }}'
-    debug:
-      msg: '{{ ("switch_port" if int_type == "access" else "port_channel" if int_type == "pc" else int_type) | default(omit, true) }}'
-    loop: '{{ present_extracted_data[path] }}'
-    when: path in present_extracted_data
-
-
   - name: Create/Modify Access Interface Policy Leaf Profile Interface Selectors
     vars:
       path: "apic/access_policies/leaf_interface_profiles/selectors"
