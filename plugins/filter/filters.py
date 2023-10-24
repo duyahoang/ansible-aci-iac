@@ -1,6 +1,7 @@
 # flake8: noqa E501
 from typing import List, Dict, Any, Union, Optional
 from ansible.errors import AnsibleError
+from ansible.utils.display import Display
 import json
 
 def extractor(data: Dict[str, Any], defaults: Dict[str, Any], path: str) -> List[Dict[str, Any]]:
@@ -124,9 +125,16 @@ def deep_merge_dicts(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> Dict[str, 
     - AnsibleError: If either of the input is not a dictionary or any other error occurs.
     """
     
+    
     try:
-        if not isinstance(dict1, dict) or not isinstance(dict2, dict):
-            raise AnsibleError("Both inputs to deep_merge_dicts should be dictionaries.")
+        if not isinstance(dict1, dict):
+            Display().warning("First deep_merge_dicts argument is not a dict. Return only data in second arguments.")
+            if not isinstance(dict2, dict):
+                raise AnsibleError("Both inputs to deep_merge_dicts is not dictionaries. At least one of two input is dictionary.")
+            return dict2
+        if not isinstance(dict2, dict):
+            Display().warning("Second deep_merge_dicts argument is not a dict. Return only data in first arguments.")
+            return dict1
     
         for key, value in dict2.items():
             if key in dict1:
