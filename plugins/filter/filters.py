@@ -52,7 +52,7 @@ def extractor(data: Dict[str, Any], defaults: Dict[str, Any], path: str) -> List
         # If data is a dictionary and contains current_path
         if isinstance(data, dict) and current_path in data:
             return extract_values(
-                data[current_path], rest_path, prefix + current_path + "_"
+                data[current_path], rest_path, prefix + current_path + "/"
             )
 
         # If data is a list of dictionaries
@@ -65,7 +65,7 @@ def extractor(data: Dict[str, Any], defaults: Dict[str, Any], path: str) -> List
                         if not isinstance(v, (dict, list))
                     }
                     deeper_values = extract_values(
-                        item[current_path], rest_path, prefix + current_path + "_"
+                        item[current_path], rest_path, prefix + current_path + "/"
                     )
                     for deeper_dict in deeper_values:
                         combined_dict = {**scalars, **deeper_dict}
@@ -249,60 +249,60 @@ def static_ports_assembler(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     def get_key(entry):
         return (
-            entry['apic_tenants_name'], 
-            entry['apic_tenants_application_profiles_name'], 
-            entry['apic_tenants_application_profiles_endpoint_groups_name']
+            entry['apic/tenants/name'], 
+            entry['apic/tenants/application_profiles/name'], 
+            entry['apic/tenants/application_profiles/endpoint_groups/name']
         )
 
     try:
         grouped_data = {}
-        prefix = "apic_tenants_application_profiles_endpoint_groups_static_ports"
+        prefix = "apic/tenants/application_profiles/endpoint_groups/static_ports/"
 
         for entry in data:        
             key = get_key(entry)
 
             grouped_data.setdefault(key, {
-                "tenant": entry['apic_tenants_name'],
-                "ap": entry['apic_tenants_application_profiles_name'],
-                "epg": entry['apic_tenants_application_profiles_endpoint_groups_name'],
+                "tenant": entry['apic/tenants/name'],
+                "ap": entry['apic/tenants/application_profiles/name'],
+                "epg": entry['apic/tenants/application_profiles/endpoint_groups/name'],
                 "interface_configs": []
             })
 
-            leafs = [entry[f'{prefix}_node_id']]
-            if f'{prefix}_node2_id' in entry:
-                leafs.append(entry[f'{prefix}_node2_id'])
+            leafs = [entry[f'{prefix}node_id']]
+            if f'{prefix}node2_id' in entry:
+                leafs.append(entry[f'{prefix}node2_id'])
             
-            pod_id = entry[f'{prefix}_pod_id']
+            pod_id = entry[f'{prefix}pod_id']
             extpaths = []
-            interface = entry.get(f'{prefix}_channel', f'{entry[prefix + "_module"]}/{entry[prefix + "_port"]}')
+            interface = entry.get(f'{prefix}channel', f'{entry[prefix + "module"]}/{entry[prefix + "port"]}')
 
-            if f'{prefix}_node_id' in entry and f'{prefix}_channel' not in entry:
+            if f'{prefix}node_id' in entry and f'{prefix}channel' not in entry:
                 
-                if f'{prefix}_sub_port' in entry:
-                    interface += f'/{entry[prefix + "_sub_port"]}'
+                if f'{prefix}sub_port' in entry:
+                    interface += f'/{entry[prefix + "sub_port"]}'
                     interface_type = 'switch_port'
-                elif f'{prefix}_fex_id' in entry:
-                    extpaths = [str(entry[f'{prefix}_fex_id'])]
+                elif f'{prefix}/fex_id' in entry:
+                    extpaths = [str(entry[f'{prefix}/fex_id'])]
                     interface_type = 'fex'
                 else:
                     interface_type = 'switch_port'
             else:
-                interface_type = 'vpc' if f'{prefix}_node2_id' in entry else 'port_channel'
+                interface_type = 'vpc' if f'{prefix}/node2_id' in entry else 'port_channel'
 
             interface_config = {
-                "encap_id": entry[f'{prefix}_vlan'],
+                "encap_id": entry[f'{prefix}vlan'],
                 "interface": interface,
                 "leafs": leafs,
                 "pod_id": pod_id,
-                "interface_mode": entry[f'{prefix}_mode'],
-                "deploy_immediacy": entry[f'{prefix}_deployment_immediacy'],
+                "interface_mode": entry[f'{prefix}mode'],
+                "deploy_immediacy": entry[f'{prefix}deployment_immediacy'],
                 "interface_type" : interface_type,
             }
 
             if extpaths:
                 interface_config["extpaths"] = extpaths
-            if f'{prefix}_description' in entry:
-                interface_config["description"] = entry[f'{prefix}_description'] 
+            if f'{prefix}description' in entry:
+                interface_config["description"] = entry[f'{prefix}description'] 
 
             grouped_data[key]['interface_configs'].append(interface_config)
 

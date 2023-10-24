@@ -42,7 +42,7 @@
   - name: Create/Modify VLAN Pools
     vars:
       path: "apic/access_policies/vlan_pools"
-      prefix: "apic_access_policies_vlan_pools_"
+      prefix: "apic/access_policies/vlan_pools/"
     cisco.aci.aci_vlan_pool:
       <<: *aci_common
       pool: '{{ item[prefix + "name"] }}'
@@ -54,11 +54,11 @@
   - name: Create/Modify VLAN Pools encap blocks
     vars:
       path: "apic/access_policies/vlan_pools/ranges"
-      prefix: "apic_access_policies_vlan_pools_ranges_"
+      prefix: "apic/access_policies/vlan_pools/ranges/"
     cisco.aci.aci_vlan_pool_encap_block:
       <<: *aci_common
-      pool: '{{ item["apic_access_policies_vlan_pools_name"] }}'
-      pool_allocation_mode: '{{ item["apic_access_policies_vlan_pools_allocation"] }}'
+      pool: '{{ item["apic/access_policies/vlan_pools/name"] }}'
+      pool_allocation_mode: '{{ item["apic/access_policies/vlan_pools/allocation"] }}'
       block_start: '{{ item[prefix + "from"] }}'
       block_end: '{{ item[prefix + "to"] | default(item[prefix + "from"], true) }}'
       allocation_mode: '{{ item[prefix + "allocation"] | default(omit, true) }}'
@@ -70,7 +70,7 @@
   - name: Create/Modify Physical Domains
     vars:
       path: "apic/access_policies/physical_domains"
-      prefix: "apic_access_policies_physical_domains_"
+      prefix: "apic/access_policies/physical_domains/"
     cisco.aci.aci_domain:
       <<: *aci_common
       domain: '{{ item[prefix + "name"] }}'
@@ -81,20 +81,20 @@
   - name: Bind Physical Domain to VLAN Pools
     vars:
       path: "apic/access_policies/physical_domains"
-      prefix: "apic_access_policies_physical_domains_" 
+      prefix: "apic/access_policies/physical_domains/" 
     cisco.aci.aci_domain_to_vlan_pool:
       <<: *aci_common
       domain: '{{ item[prefix + "name"] }}'
       domain_type: 'phys'
       pool: '{{ item[prefix + "vlan_pool"] }}'
-      pool_allocation_mode: '{{ present_extracted_data | find_value("apic/access_policies/vlan_pools","apic_access_policies_vlan_pools_name",item[prefix + "vlan_pool"],"apic_access_policies_vlan_pools_allocation") }}'
+      pool_allocation_mode: '{{ present_extracted_data | find_value("apic/access_policies/vlan_pools","apic/access_policies/vlan_pools/name",item[prefix + "vlan_pool"],"apic/access_policies/vlan_pools/allocation") }}'
     loop: '{{ present_extracted_data[path] }}'
     when: path in present_extracted_data
 
   - name: Create/Modify Routed Domains
     vars:
       path: "apic/access_policies/routed_domains"
-      prefix: "apic_access_policies_routed_domains_"
+      prefix: "apic/access_policies/routed_domains/"
     cisco.aci.aci_domain:
       <<: *aci_common
       domain: '{{ item[prefix + "name"] }}'
@@ -105,20 +105,20 @@
   - name: Bind Routed Domain to VLAN Pools
     vars:
       path: "apic/access_policies/routed_domains"
-      prefix: "apic_access_policies_routed_domains_" 
+      prefix: "apic/access_policies/routed_domains/" 
     cisco.aci.aci_domain_to_vlan_pool:
       <<: *aci_common
       domain: '{{ item[prefix + "name"] }}'
       domain_type: 'l3dom'
       pool: '{{ item[prefix + "vlan_pool"] }}'
-      pool_allocation_mode: '{{ present_extracted_data | find_value("apic/access_policies/vlan_pools","apic_access_policies_vlan_pools_name",item[prefix + "vlan_pool"],"apic_access_policies_vlan_pools_allocation") }}'
+      pool_allocation_mode: '{{ present_extracted_data | find_value("apic/access_policies/vlan_pools","apic/access_policies/vlan_pools/name",item[prefix + "vlan_pool"],"apic/access_policies/vlan_pools/allocation") }}'
     loop: '{{ present_extracted_data[path] }}'
     when: path in present_extracted_data
     
   - name: Create/Modify Access Policies CDP Interface Policies 
     vars:
       path: "apic/access_policies/interface_policies/cdp_policies"
-      prefix: "apic_access_policies_interface_policies_cdp_policies_"
+      prefix: "apic/access_policies/interface_policies/cdp_policies/"
     cisco.aci.aci_interface_policy_cdp:
       <<: *aci_common
       cdp_policy: '{{ item[prefix + "name"] }}'
@@ -129,7 +129,7 @@
   - name: Create/Modify Access Policies LLDP Interface Policies 
     vars:
       path: "apic/access_policies/interface_policies/lldp_policies"
-      prefix: "apic_access_policies_interface_policies_lldp_policies_"
+      prefix: "apic/access_policies/interface_policies/lldp_policies/"
     cisco.aci.aci_interface_policy_lldp:
       <<: *aci_common
       lldp_policy: '{{ item[prefix + "name"] }}'
@@ -141,7 +141,7 @@
   - name: Create/Modify Access Policies Link Level Interface Policies 
     vars:
       path: "apic/access_policies/interface_policies/link_level_policies"
-      prefix: "apic_access_policies_interface_policies_link_level_policies_"
+      prefix: "apic/access_policies/interface_policies/link_level_policies/"
     cisco.aci.aci_interface_policy_link_level:
       <<: *aci_common
       link_level_policy: '{{ item[prefix + "name"] }}'
@@ -154,7 +154,7 @@
   - name: Create/Modify Access Interface Policy Leaf Policy Groups
     vars:
       path: "apic/access_policies/leaf_interface_policy_groups"
-      prefix: "apic_access_policies_leaf_interface_policy_groups_"
+      prefix: "apic/access_policies/leaf_interface_policy_groups/"
     cisco.aci.aci_interface_policy_leaf_policy_group:
       <<: *aci_common
       policy_group: '{{ item[prefix + "name"] }}'
@@ -175,7 +175,7 @@
   - name: Create/Modify AAEPs
     vars:
       path: "apic/access_policies/aaeps"
-      prefix: "apic_access_policies_aaeps_"
+      prefix: "apic/access_policies/aaeps/"
     cisco.aci.aci_aep:
       <<: *aci_common
       aep: '{{ item[prefix + "name"] }}'
@@ -186,7 +186,7 @@
   - name: Bind AEPs to Physical Domains
     vars:
       path: "apic/access_policies/aaeps/physical_domains"
-      prefix: "apic_access_policies_aaeps_"
+      prefix: "apic/access_policies/aaeps/"
     cisco.aci.aci_aep_to_domain:
       <<: *aci_common
       aep: '{{ item[0][prefix + "name"] }}'
@@ -198,7 +198,7 @@
   - name: Bind AEPs to Routed Domains
     vars:
       path: "apic/access_policies/aaeps/routed_domains"
-      prefix: "apic_access_policies_aaeps_"
+      prefix: "apic/access_policies/aaeps/"
     cisco.aci.aci_aep_to_domain:
       <<: *aci_common
       aep: '{{ item[0][prefix + "name"] }}'
@@ -210,10 +210,10 @@
   - name: Bind EPG to AEP
     vars:
       path: "apic/access_policies/aaeps/endpoint_groups"
-      prefix: "apic_access_policies_aaeps_endpoint_groups_"
+      prefix: "apic/access_policies/aaeps/endpoint_groups/"
     cisco.aci.aci_aep_to_epg:
       <<: *aci_common
-      aep: '{{ item["apic_access_policies_aaeps_name"] }}'
+      aep: '{{ item["apic/access_policies/aaeps/name"] }}'
       tenant: '{{ item[prefix + "tenant"] }}'
       ap: '{{ item[prefix + "application_profile"] }}'
       epg: '{{ item[prefix + "endpoint_group"] }}'
@@ -226,7 +226,7 @@
   - name: Create/Modify Access Interface Policy Leaf Profiles
     vars:
       path: "apic/access_policies/leaf_interface_profiles"
-      prefix: "apic_access_policies_leaf_interface_profiles_"
+      prefix: "apic/access_policies/leaf_interface_profiles/"
     cisco.aci.aci_interface_policy_leaf_profile:
       <<: *aci_common
       interface_profile: '{{ item[prefix + "name"] }}'
@@ -237,11 +237,11 @@
   - name: Create/Modify Access Interface Policy Leaf Profile Interface Selectors
     vars:
       path: "apic/access_policies/leaf_interface_profiles/selectors"
-      prefix: "apic_access_policies_leaf_interface_profiles_selectors_"  
-      int_type: '{{ (present_extracted_data | find_value("apic/access_policies/leaf_interface_policy_groups","apic_access_policies_leaf_interface_policy_groups_name",item[prefix + "policy_group"],"apic_access_policies_leaf_interface_policy_groups_type")) if (prefix + "policy_group") in item }}'
+      prefix: "apic/access_policies/leaf_interface_profiles/selectors/"  
+      int_type: '{{ (present_extracted_data | find_value("apic/access_policies/leaf_interface_policy_groups","apic/access_policies/leaf_interface_policy_groups/name",item[prefix + "policy_group"],"apic/access_policies/leaf_interface_policy_groups/type")) if (prefix + "policy_group") in item }}'
     cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
       <<: *aci_common
-      interface_profile: '{{ item["apic_access_policies_leaf_interface_profiles_name"] }}'
+      interface_profile: '{{ item["apic/access_policies/leaf_interface_profiles/name"] }}'
       access_port_selector: '{{ item[prefix + "name"] }}'
       policy_group: '{{ item[prefix + "policy_group"] | default(omit, true) }}'
       interface_type: '{{ ("switch_port" if int_type == "access" else "port_channel" if int_type == "pc" else int_type) | default(omit, true) }}'
@@ -252,11 +252,11 @@
   - name: Create/Modify Port Blocks of Access Interface Policy Leaf Profile Interface Selectors
     vars:
       path: "apic/access_policies/leaf_interface_profiles/selectors/port_blocks"
-      prefix: "apic_access_policies_leaf_interface_profiles_selectors_port_blocks_"  
+      prefix: "apic/access_policies/leaf_interface_profiles/selectors/port_blocks/"  
     cisco.aci.aci_access_port_block_to_access_port:
       <<: *aci_common
-      interface_profile: '{{ item["apic_access_policies_leaf_interface_profiles_name"] }}'
-      access_port_selector: '{{ item["apic_access_policies_leaf_interface_profiles_selectors_name"] }}'
+      interface_profile: '{{ item["apic/access_policies/leaf_interface_profiles/name"] }}'
+      access_port_selector: '{{ item["apic/access_policies/leaf_interface_profiles/selectors/name"] }}'
       port_blk: '{{ item[prefix + "name"] }}'
       port_blk_description: '{{ item[prefix + "description"] | default(omit, true) }}'
       from_card: '{{ item[prefix + "from_module"] | default(omit, true) }}'
@@ -270,11 +270,11 @@
   - name: Create/Modify Sub Port Blocks of Access Interface Policy Leaf Profile Interface Selectors 
     vars:
       path: "apic/access_policies/leaf_interface_profiles/selectors/sub_port_blocks"
-      prefix: "apic_access_policies_leaf_interface_profiles_selectors_sub_port_blocks_"
+      prefix: "apic/access_policies/leaf_interface_profiles/selectors/sub_port_blocks/"
     cisco.aci.aci_access_sub_port_block_to_access_port:
       <<: *aci_common
-      leaf_interface_profile: '{{ item["apic_access_policies_leaf_interface_profiles_name"] }}'
-      access_port_selector: '{{ item["apic_access_policies_leaf_interface_profiles_selectors_name"] }}'
+      leaf_interface_profile: '{{ item["apic/access_policies/leaf_interface_profiles/name"] }}'
+      access_port_selector: '{{ item["apic/access_policies/leaf_interface_profiles/selectors/name"] }}'
       leaf_port_blk: '{{ item[prefix + "name"] }}'
       leaf_port_blk_description: '{{ item[prefix + "description"] | default(omit, true) }}'
       from_card: '{{ item[prefix + "from_module"] | default(omit, true) }}'
