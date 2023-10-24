@@ -78,6 +78,10 @@ An Ansible Infrastructure as Code (IaC) solution is designed to automate Cisco A
 
 Utilizing password-based authentication frequently or in rapid succession may lead to triggering ACI's anti-DoS measures. This can result in session throttling and cause HTTP 503 errors and login failures. It is advisable to use this method judiciously and be aware of the potential repercussions. More on the official [Cisco ACI Ansible Guide](https://docs.ansible.com/ansible/latest/scenario_guides/guide_aci.html#password-based-authentication).
 
+## Example
+
+The `example-playbook-execution,txt` file show the example of execute playbook and its output.
+
 ## Author
 Duy Hoang
 duyhoan@cisco.com
