@@ -201,3 +201,12 @@
       interface_configs: '{{ item.interface_configs }}'
     loop: '{{ present_extracted_data[path] | static_ports_assembler() }}'
     when: path in present_extracted_data
+
+  - name: Clean up data
+    set_fact:
+      apic_configuration: {}
+      previous_apic_configuration: {}
+      current_extracted_data: {}
+      previous_extracted_data: {}
+      present_extracted_data: {}
+      absent_extracted_data: {}
