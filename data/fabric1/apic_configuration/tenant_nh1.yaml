@@ -1,0 +1,177 @@
+---
+apic:
+  tenants:
+    - name: nh1
+      application_profiles:
+        - name: default
+          endpoint_groups:
+            - name: epg-201
+              bridge_domain: bd-201
+              physical_domains:
+                - phys
+              static_ports:
+                - node_id: 101
+                  port: 19
+                  vlan: 201
+
+            - name: epg-202
+              bridge_domain: bd-202
+              physical_domains:
+                - phys
+              subnets:
+                - ip: 10.202.0.1/24
+              static_ports:
+                - node_id: 101
+                  port: 19
+                  vlan: 202
+                - node_id: 102
+                  port: 19
+                  vlan: 202
+
+            - name: epg-203
+              bridge_domain: bd-203
+              physical_domains:
+                - phys-nh1-mappings
+              subnets:
+                - ip: 10.203.0.1/24
+
+            - name: epg-204
+              bridge_domain: bd-204
+              physical_domains:
+                - phys-nh1-mappings
+              subnets:
+                - ip: 10.204.0.1/24
+
+      bridge_domains:
+        - name: bd-201
+          vrf: vrf-201
+          subnets:
+            - ip: 10.201.0.1/24
+        - name: bd-202
+          vrf: vrf-201
+        - name: bd-203
+          vrf: vrf-203
+        - name: bd-204
+          vrf: vrf-204
+
+      vrfs:
+        - name: vrf-201
+          enforcement_preference: unenforced
+        - name: vrf-202
+          enforcement_preference: unenforced
+        - name: vrf-203
+          enforcement_preference: unenforced
+        - name: vrf-204
+          enforcement_preference: unenforced
+        - name: vrf-210
+          enforcement_preference: unenforced
+        - name: vrf-211
+          enforcement_preference: unenforced
+        - name: vrf-212
+          enforcement_preference: unenforced
+
+      l3outs:
+        - name: l3out-210
+          description: "static - SVI, VLAN 210"
+          vrf: vrf-210
+          domain: l3dom
+          nodes:
+            - node_id: 101
+              router_id: 10.101.0.210
+              static_routes:
+                - prefix: 0.0.0.0/0
+                  next_hops:
+                    - ip: 10.210.0.254
+              interfaces:
+                - node_id: 101
+                  svi: true
+                  port: 19
+                  vlan: 210
+                  ip: 10.210.0.1/24
+          external_endpoint_groups:
+            - name: ext-epg-1
+              subnets:
+                - name: all
+                  prefix: 0.0.0.0/0
+                  import_security: true
+
+        - name: l3out-211
+          description: "OSPF - L3 interface"
+          vrf: vrf-211
+          domain: l3dom
+          ospf:
+            area: 0
+            area_type: regular
+            policy: broadcast
+          nodes:
+            - node_id: 101
+              router_id: 10.101.0.211
+              interfaces:
+                - node_id: 101
+                  port: 40
+                  ip: 10.211.0.1/30
+          external_endpoint_groups:
+            - name: ext-epg-1
+              subnets:
+                - name: all
+                  prefix: 0.0.0.0/0
+                  import_security: true
+
+        - name: l3out-212
+          description: "BGP - SVI, VPC, VLAN 212"
+          vrf: vrf-212
+          domain: l3dom
+          node_profiles:
+            - name: l3out-212
+              nodes:
+                - node_id: 101
+                  router_id: 10.101.0.212
+                - node_id: 102
+                  router_id: 10.102.0.212
+              interface_profiles:
+                - name: l3out-212
+                  interfaces:
+                    - channel: vpc-101-102-l3out-212
+                      svi: true
+                      vlan: 212
+                      ip_a: 10.212.0.1/24
+                      ip_b: 10.212.0.2/24
+                      bgp_peers:
+                        - ip: 10.212.0.3
+                          local_as: 1
+                          remote_as: 2
+          external_endpoint_groups:
+            - name: ext-epg-1
+              subnets:
+                - name: all
+                  prefix: 0.0.0.0/0
+                  import_security: true
+
+      contracts:
+        - name: any
+          scope: tenant
+          subjects:
+            - name: any
+              filters:
+                - filter: default
+
+      policies:
+        ospf_interface_policies:
+          - name: broadcast
+            network_type: bcast
+            mtu_ignore: true
+
+          - name: point-to-point
+            network_type: p2p
+            mtu_ignore: true
+
+        match_rules:
+          - name: match-default
+            prefixes:
+              - ip: 0.0.0.0/0
+                aggregate: false
+                from_length: 0
+                to_length: 0
+        set_rules:
+          - name: set-10-201-0-151-nexthop
+            next_hop: 10.201.0.151

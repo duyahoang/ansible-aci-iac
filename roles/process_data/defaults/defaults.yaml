@@ -186,7 +186,7 @@ defaults:
             weight: 0
       span:
         destination_groups:
-  
+
           mtu: 1518
           module: 1
           dscp: unspecified
@@ -195,35 +195,35 @@ defaults:
           version: 2
           enforce_version: false
         source_groups:
-  
+
           admin_state: true
           sources:
-    
+
             direction: "both"
             span_drop: false
             access_paths:
               module: 1
         filter_groups:
-  
+
           entries:
-    
+
             destination_from_port: unspecified
             source_from_port: unspecified
             ip_protocol: unspecified
       vspan:
         destination_groups:
-  
+
           destinations:
-    
+
             mtu: 1518
             flow_id: 1
             ttl: 64
             dscp: unspecified
         sessions:
-  
+
           admin_state: true
           sources:
-    
+
             direction: both
             access_paths:
               module: 1

@@ -2,9 +2,9 @@
 - name: Run Ansible ACI modules against data model APIC Configuration with State Present
   delegate_to: localhost
   block:
-  - name: Inlcude present_apic_access_policies role
-    include_role:
-      name: present_apic_access_policies
-  - name: Inlcude present_apic_tenants role
-    include_role:
-      name: present_apic_tenants
+    - name: Inlcude present_apic_access_policies role
+      ansible.legacy.include_role:
+        name: present_apic_access_policies
+    - name: Inlcude present_apic_tenants role
+      ansible.legacy.include_role:
+        name: present_apic_tenants
